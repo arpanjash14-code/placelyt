@@ -1,5 +1,6 @@
 package com.placelyt.placelyt.service;
 
+import com.placelyt.placelyt.dto.LoginRequest;
 import com.placelyt.placelyt.dto.UserRequest;
 import com.placelyt.placelyt.dto.UserResponse;
 import com.placelyt.placelyt.entity.User;
@@ -62,4 +63,20 @@ public class UserService {
                         user.getRole()
                 ));
     }
+    public UserResponse login(LoginRequest request) {
+
+    User user = userRepository.findByEmail(request.getEmail())
+            .orElseThrow(() -> new RuntimeException("Invalid email or password"));
+
+    if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
+        throw new RuntimeException("Invalid email or password");
+    }
+
+    return new UserResponse(
+            user.getId(),
+            user.getName(),
+            user.getEmail(),
+            user.getRole()
+    );
+}
 }

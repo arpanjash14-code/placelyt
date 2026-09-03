@@ -1,5 +1,6 @@
 package com.placelyt.placelyt.controller;
 
+import com.placelyt.placelyt.dto.LoginRequest;
 import com.placelyt.placelyt.dto.UserRequest;
 import com.placelyt.placelyt.dto.UserResponse;
 import com.placelyt.placelyt.service.UserService;
@@ -23,6 +24,10 @@ public class UserController {
             @RequestBody UserRequest request) {
 
         return ResponseEntity.ok(userService.createUser(request));
+    }
+    @PostMapping("/login")
+    public UserResponse login(@RequestBody LoginRequest request) { 
+    return userService.login(request);
     }
 
     @GetMapping
