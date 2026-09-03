@@ -7,6 +7,8 @@ import com.placelyt.placelyt.entity.User;
 import com.placelyt.placelyt.repository.UserRepository;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import com.placelyt.placelyt.exception.DuplicateEmailException;
+import com.placelyt.placelyt.exception.InvalidCredentialsException;
 
 import java.util.List;
 import java.util.Optional;
@@ -22,8 +24,12 @@ public class UserService {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
     }
+    
 
     public UserResponse createUser(UserRequest request) {
+        if (userRepository.findByEmail(request.getEmail()).isPresent()) {
+    throw new DuplicateEmailException("Email is already registered");
+}
 
         User user = new User();
 
@@ -66,11 +72,11 @@ public class UserService {
     public UserResponse login(LoginRequest request) {
 
     User user = userRepository.findByEmail(request.getEmail())
-            .orElseThrow(() -> new RuntimeException("Invalid email or password"));
+        .orElseThrow(() -> new InvalidCredentialsException("Invalid email or password"));
 
-    if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
-        throw new RuntimeException("Invalid email or password");
-    }
+if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
+    throw new InvalidCredentialsException("Invalid email or password");
+}
 
     return new UserResponse(
             user.getId(),
