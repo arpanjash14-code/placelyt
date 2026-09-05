@@ -2,7 +2,9 @@ package com.placelyt.placelyt.service;
 
 import com.placelyt.placelyt.dto.LoginRequest;
 import com.placelyt.placelyt.dto.LoginResponse;
+import com.placelyt.placelyt.exception.InvalidCredentialsException;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -24,17 +26,23 @@ public class AuthenticationService {
 
     public LoginResponse login(LoginRequest request) {
 
-        Authentication authentication = authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(
-                        request.getEmail(),
-                        request.getPassword()
-                )
-        );
+        try {
+            Authentication authentication = authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(
+                            request.getEmail(),
+                            request.getPassword()
+                    )
+            );
 
-        UserDetails userDetails = (UserDetails) authentication.getPrincipal();
+            UserDetails userDetails =
+                    (UserDetails) authentication.getPrincipal();
 
-        String token = jwtService.generateToken(userDetails);
+            String token = jwtService.generateToken(userDetails);
 
-        return new LoginResponse(token);
+            return new LoginResponse(token);
+
+        } catch (BadCredentialsException exception) {
+            throw new InvalidCredentialsException("Invalid email or password");
+        }
     }
 }
