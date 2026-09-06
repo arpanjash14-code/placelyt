@@ -5,12 +5,23 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import com.placelyt.placelyt.exception.DuplicateUserSkillException;
 
 import java.util.HashMap;
 import java.util.Map;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+    @ExceptionHandler(DuplicateUserSkillException.class)
+public ResponseEntity<Map<String, String>> handleDuplicateUserSkill(
+        DuplicateUserSkillException exception) {
+
+    Map<String, String> error = new HashMap<>();
+    error.put("error", exception.getMessage());
+
+    return new ResponseEntity<>(error, HttpStatus.CONFLICT);
+}
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<Map<String, String>> handleValidationExceptions(
