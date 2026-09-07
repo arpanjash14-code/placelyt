@@ -69,4 +69,24 @@ public class GlobalExceptionHandler {
 
         return new ResponseEntity<>(error, HttpStatus.UNAUTHORIZED);
     }
+
+    @ExceptionHandler(DuplicateCompanyException.class)
+public ResponseEntity<Map<String, String>> handleDuplicateCompany(
+        DuplicateCompanyException exception) {
+
+    Map<String, String> error = new HashMap<>();
+    error.put("error", exception.getMessage());
+
+    return new ResponseEntity<>(error, HttpStatus.CONFLICT);
+}
+
+@ExceptionHandler(CompanyNotFoundException.class)
+public ResponseEntity<Map<String, String>> handleCompanyNotFound(
+        CompanyNotFoundException exception) {
+
+    Map<String, String> error = new HashMap<>();
+    error.put("error", exception.getMessage());
+
+    return new ResponseEntity<>(error, HttpStatus.NOT_FOUND);
+}
 }
