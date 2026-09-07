@@ -5,7 +5,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
-import com.placelyt.placelyt.exception.DuplicateUserSkillException;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -14,14 +13,24 @@ import java.util.Map;
 public class GlobalExceptionHandler {
 
     @ExceptionHandler(DuplicateUserSkillException.class)
-public ResponseEntity<Map<String, String>> handleDuplicateUserSkill(
-        DuplicateUserSkillException exception) {
+    public ResponseEntity<Map<String, String>> handleDuplicateUserSkill(
+            DuplicateUserSkillException exception) {
 
-    Map<String, String> error = new HashMap<>();
-    error.put("error", exception.getMessage());
+        Map<String, String> error = new HashMap<>();
+        error.put("error", exception.getMessage());
 
-    return new ResponseEntity<>(error, HttpStatus.CONFLICT);
-}
+        return new ResponseEntity<>(error, HttpStatus.CONFLICT);
+    }
+
+    @ExceptionHandler(DuplicatePreferenceException.class)
+    public ResponseEntity<Map<String, String>> handleDuplicatePreference(
+            DuplicatePreferenceException exception) {
+
+        Map<String, String> error = new HashMap<>();
+        error.put("error", exception.getMessage());
+
+        return new ResponseEntity<>(error, HttpStatus.CONFLICT);
+    }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<Map<String, String>> handleValidationExceptions(
@@ -32,7 +41,10 @@ public ResponseEntity<Map<String, String>> handleDuplicateUserSkill(
         exception.getBindingResult()
                 .getFieldErrors()
                 .forEach(error ->
-                        errors.put(error.getField(), error.getDefaultMessage())
+                        errors.put(
+                                error.getField(),
+                                error.getDefaultMessage()
+                        )
                 );
 
         return new ResponseEntity<>(errors, HttpStatus.BAD_REQUEST);
