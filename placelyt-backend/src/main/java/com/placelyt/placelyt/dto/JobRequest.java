@@ -1,79 +1,30 @@
-package com.placelyt.placelyt.entity;
-
-import jakarta.persistence.*;
+package com.placelyt.placelyt.dto;
 
 import java.time.LocalDate;
-import java.util.ArrayList;
 import java.util.List;
 
-@Entity
-@Table(name = "jobs")
-public class Job {
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
-
-    @ManyToOne
-    @JoinColumn(name = "company_id", nullable = false)
-    private Company company;
+public class JobRequest {
 
     private String title;
-
-    @Column(length = 3000)
     private String description;
-
     private String employmentType;
-
     private String workMode;
-
     private String location;
 
     private Double minimumSalary;
-
     private Double maximumSalary;
-
     private Double minimumCgpa;
 
     private String requiredDegree;
-
     private Integer eligibleGraduationYear;
 
-    private LocalDate applicationDeadline;
+    private List<String> eligibleBranches;
+    private List<Long> requiredSkillIds;
 
+    private LocalDate applicationDeadline;
     private String status;
 
-    @OneToMany(
-            mappedBy = "job",
-            cascade = CascadeType.ALL,
-            orphanRemoval = true
-    )
-    private List<JobEligibleBranch> eligibleBranches = new ArrayList<>();
-
-    @OneToMany(
-            mappedBy = "job",
-            cascade = CascadeType.ALL,
-            orphanRemoval = true
-    )
-    private List<JobRequiredSkill> requiredSkills = new ArrayList<>();
-
-    public Job() {
-    }
-
-    public Long getId() {
-        return id;
-    }
-
-    public void setId(Long id) {
-        this.id = id;
-    }
-
-    public Company getCompany() {
-        return company;
-    }
-
-    public void setCompany(Company company) {
-        this.company = company;
+    public JobRequest() {
     }
 
     public String getTitle() {
@@ -156,6 +107,22 @@ public class Job {
         this.eligibleGraduationYear = eligibleGraduationYear;
     }
 
+    public List<String> getEligibleBranches() {
+        return eligibleBranches;
+    }
+
+    public void setEligibleBranches(List<String> eligibleBranches) {
+        this.eligibleBranches = eligibleBranches;
+    }
+
+    public List<Long> getRequiredSkillIds() {
+        return requiredSkillIds;
+    }
+
+    public void setRequiredSkillIds(List<Long> requiredSkillIds) {
+        this.requiredSkillIds = requiredSkillIds;
+    }
+
     public LocalDate getApplicationDeadline() {
         return applicationDeadline;
     }
@@ -170,23 +137,5 @@ public class Job {
 
     public void setStatus(String status) {
         this.status = status;
-    }
-
-    public List<JobEligibleBranch> getEligibleBranches() {
-        return eligibleBranches;
-    }
-
-    public void setEligibleBranches(
-            List<JobEligibleBranch> eligibleBranches) {
-        this.eligibleBranches = eligibleBranches;
-    }
-
-    public List<JobRequiredSkill> getRequiredSkills() {
-        return requiredSkills;
-    }
-
-    public void setRequiredSkills(
-            List<JobRequiredSkill> requiredSkills) {
-        this.requiredSkills = requiredSkills;
     }
 }

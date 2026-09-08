@@ -71,32 +71,52 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(DuplicateCompanyException.class)
-public ResponseEntity<Map<String, String>> handleDuplicateCompany(
-        DuplicateCompanyException exception) {
+    public ResponseEntity<Map<String, String>> handleDuplicateCompany(
+            DuplicateCompanyException exception) {
 
-    Map<String, String> error = new HashMap<>();
-    error.put("error", exception.getMessage());
+        Map<String, String> error = new HashMap<>();
+        error.put("error", exception.getMessage());
 
-    return new ResponseEntity<>(error, HttpStatus.CONFLICT);
-}
+        return new ResponseEntity<>(error, HttpStatus.CONFLICT);
+    }
 
-@ExceptionHandler(CompanyNotFoundException.class)
-public ResponseEntity<Map<String, String>> handleCompanyNotFound(
-        CompanyNotFoundException exception) {
+    @ExceptionHandler(CompanyNotFoundException.class)
+    public ResponseEntity<Map<String, String>> handleCompanyNotFound(
+            CompanyNotFoundException exception) {
 
-    Map<String, String> error = new HashMap<>();
-    error.put("error", exception.getMessage());
+        Map<String, String> error = new HashMap<>();
+        error.put("error", exception.getMessage());
 
-    return new ResponseEntity<>(error, HttpStatus.NOT_FOUND);
-}
+        return new ResponseEntity<>(error, HttpStatus.NOT_FOUND);
+    }
 
-@ExceptionHandler(JobNotFoundException.class)
-public ResponseEntity<Map<String, String>> handleJobNotFound(
-        JobNotFoundException exception) {
+    @ExceptionHandler(JobNotFoundException.class)
+    public ResponseEntity<Map<String, String>> handleJobNotFound(
+            JobNotFoundException exception) {
 
-    Map<String, String> error = new HashMap<>();
-    error.put("error", exception.getMessage());
+        Map<String, String> error = new HashMap<>();
+        error.put("error", exception.getMessage());
 
-    return new ResponseEntity<>(error, HttpStatus.NOT_FOUND);
-}
+        return new ResponseEntity<>(error, HttpStatus.NOT_FOUND);
+    }
+
+    @ExceptionHandler(SkillNotFoundException.class)
+    public ResponseEntity<Map<String, String>> handleSkillNotFound(
+            SkillNotFoundException exception) {
+
+        Map<String, String> error = new HashMap<>();
+        error.put("error", exception.getMessage());
+
+        return new ResponseEntity<>(error, HttpStatus.NOT_FOUND);
+    }
+
+    @ExceptionHandler(StudentProfileNotFoundException.class)
+    public ResponseEntity<Map<String, String>> handleStudentProfileNotFound(
+            StudentProfileNotFoundException exception) {
+
+        Map<String, String> error = new HashMap<>();
+        error.put("error", exception.getMessage());
+
+        return new ResponseEntity<>(error, HttpStatus.NOT_FOUND);
+    }
 }

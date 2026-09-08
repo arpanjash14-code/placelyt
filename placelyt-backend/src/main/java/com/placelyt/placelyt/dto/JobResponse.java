@@ -1,25 +1,32 @@
 package com.placelyt.placelyt.dto;
 
 import java.time.LocalDate;
+import java.util.List;
 
 public class JobResponse {
 
     private Long id;
     private Long companyId;
     private String companyName;
+
     private String title;
     private String description;
     private String employmentType;
     private String workMode;
     private String location;
+
     private Double minimumSalary;
     private Double maximumSalary;
     private Double minimumCgpa;
+
+    private String requiredDegree;
+    private Integer eligibleGraduationYear;
+
+    private List<String> eligibleBranches;
+    private List<String> requiredSkills;
+
     private LocalDate applicationDeadline;
     private String status;
-
-    public JobResponse() {
-    }
 
     public JobResponse(
             Long id,
@@ -33,9 +40,13 @@ public class JobResponse {
             Double minimumSalary,
             Double maximumSalary,
             Double minimumCgpa,
+            String requiredDegree,
+            Integer eligibleGraduationYear,
+            List<String> eligibleBranches,
+            List<String> requiredSkills,
             LocalDate applicationDeadline,
-            String status
-    ) {
+            String status) {
+
         this.id = id;
         this.companyId = companyId;
         this.companyName = companyName;
@@ -47,6 +58,10 @@ public class JobResponse {
         this.minimumSalary = minimumSalary;
         this.maximumSalary = maximumSalary;
         this.minimumCgpa = minimumCgpa;
+        this.requiredDegree = requiredDegree;
+        this.eligibleGraduationYear = eligibleGraduationYear;
+        this.eligibleBranches = eligibleBranches;
+        this.requiredSkills = requiredSkills;
         this.applicationDeadline = applicationDeadline;
         this.status = status;
     }
@@ -93,6 +108,22 @@ public class JobResponse {
 
     public Double getMinimumCgpa() {
         return minimumCgpa;
+    }
+
+    public String getRequiredDegree() {
+        return requiredDegree;
+    }
+
+    public Integer getEligibleGraduationYear() {
+        return eligibleGraduationYear;
+    }
+
+    public List<String> getEligibleBranches() {
+        return eligibleBranches;
+    }
+
+    public List<String> getRequiredSkills() {
+        return requiredSkills;
     }
 
     public LocalDate getApplicationDeadline() {
