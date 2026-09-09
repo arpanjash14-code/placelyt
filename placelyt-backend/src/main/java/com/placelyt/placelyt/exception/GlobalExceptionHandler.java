@@ -119,4 +119,54 @@ public class GlobalExceptionHandler {
 
         return new ResponseEntity<>(error, HttpStatus.NOT_FOUND);
     }
+
+    @ExceptionHandler(DuplicateApplicationException.class)
+public ResponseEntity<Map<String, String>> handleDuplicateApplication(
+        DuplicateApplicationException exception) {
+
+    Map<String, String> error = new HashMap<>();
+    error.put("error", exception.getMessage());
+
+    return new ResponseEntity<>(error, HttpStatus.CONFLICT);
+}
+
+@ExceptionHandler(ApplicationNotFoundException.class)
+public ResponseEntity<Map<String, String>> handleApplicationNotFound(
+        ApplicationNotFoundException exception) {
+
+    Map<String, String> error = new HashMap<>();
+    error.put("error", exception.getMessage());
+
+    return new ResponseEntity<>(error, HttpStatus.NOT_FOUND);
+}
+
+@ExceptionHandler(JobNotOpenException.class)
+public ResponseEntity<Map<String, String>> handleJobNotOpen(
+        JobNotOpenException exception) {
+
+    Map<String, String> error = new HashMap<>();
+    error.put("error", exception.getMessage());
+
+    return new ResponseEntity<>(error, HttpStatus.BAD_REQUEST);
+}
+
+@ExceptionHandler(InvalidApplicationStatusTransitionException.class)
+public ResponseEntity<Map<String, String>> handleInvalidApplicationStatusTransition(
+        InvalidApplicationStatusTransitionException exception) {
+
+    Map<String, String> error = new HashMap<>();
+    error.put("error", exception.getMessage());
+
+    return new ResponseEntity<>(error, HttpStatus.BAD_REQUEST);
+}
+
+@ExceptionHandler(ApplicationOwnershipException.class)
+public ResponseEntity<Map<String, String>> handleApplicationOwnership(
+        ApplicationOwnershipException exception) {
+
+    Map<String, String> error = new HashMap<>();
+    error.put("error", exception.getMessage());
+
+    return new ResponseEntity<>(error, HttpStatus.FORBIDDEN);
+}
 }
