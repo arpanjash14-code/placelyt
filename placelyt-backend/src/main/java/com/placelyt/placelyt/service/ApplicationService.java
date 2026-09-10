@@ -12,6 +12,7 @@ import com.placelyt.placelyt.exception.DuplicateApplicationException;
 import com.placelyt.placelyt.exception.InvalidApplicationStatusTransitionException;
 import com.placelyt.placelyt.exception.JobNotFoundException;
 import com.placelyt.placelyt.exception.JobNotOpenException;
+import com.placelyt.placelyt.exception.UserNotFoundException;
 import com.placelyt.placelyt.repository.ApplicationRepository;
 import com.placelyt.placelyt.repository.JobRepository;
 import com.placelyt.placelyt.repository.UserRepository;
@@ -19,6 +20,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.placelyt.placelyt.exception.UserNotFoundException;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -113,7 +115,7 @@ public class ApplicationService {
             Long userId) {
 
         if (!userRepository.existsById(userId)) {
-            throw new RuntimeException("User not found");
+            throw new UserNotFoundException("User not found");
         }
 
         return applicationRepository.findByUserId(userId)

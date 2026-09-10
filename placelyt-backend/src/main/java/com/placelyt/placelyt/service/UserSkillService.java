@@ -4,11 +4,15 @@ import com.placelyt.placelyt.dto.UserSkillResponse;
 import com.placelyt.placelyt.entity.Skill;
 import com.placelyt.placelyt.entity.User;
 import com.placelyt.placelyt.entity.UserSkill;
+import com.placelyt.placelyt.exception.DuplicateUserSkillException;
+import com.placelyt.placelyt.exception.SkillNotFoundException;
+import com.placelyt.placelyt.exception.UserNotFoundException;
+import com.placelyt.placelyt.exception.UserSkillNotFoundException;
+import com.placelyt.placelyt.exception.UserSkillOwnershipException;
 import com.placelyt.placelyt.repository.SkillRepository;
 import com.placelyt.placelyt.repository.UserRepository;
 import com.placelyt.placelyt.repository.UserSkillRepository;
 import org.springframework.stereotype.Service;
-import com.placelyt.placelyt.exception.DuplicateUserSkillException;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -37,19 +41,19 @@ public class UserSkillService {
 
         User user = userRepository.findById(userId)
                 .orElseThrow(() ->
-                        new RuntimeException("User not found"));
+                        new UserNotFoundException("User not found"));
 
         Skill skill = skillRepository.findById(skillId)
                 .orElseThrow(() ->
-                        new RuntimeException("Skill not found"));
+                        new SkillNotFoundException("Skill not found"));
 
         if (userSkillRepository
                 .findByUserIdAndSkillId(userId, skillId)
                 .isPresent()) {
 
             throw new DuplicateUserSkillException(
-        "User already has this skill"
-);
+                    "User already has this skill"
+            );
         }
 
         userSkill.setUser(user);
@@ -77,12 +81,12 @@ public class UserSkillService {
         UserSkill existingUserSkill =
                 userSkillRepository.findById(userSkillId)
                         .orElseThrow(() ->
-                                new RuntimeException(
+                                new UserSkillNotFoundException(
                                         "User skill not found"
                                 ));
 
         if (!existingUserSkill.getUser().getId().equals(userId)) {
-            throw new RuntimeException(
+            throw new UserSkillOwnershipException(
                     "Skill does not belong to this user"
             );
         }
@@ -108,12 +112,12 @@ public class UserSkillService {
         UserSkill userSkill =
                 userSkillRepository.findById(userSkillId)
                         .orElseThrow(() ->
-                                new RuntimeException(
+                                new UserSkillNotFoundException(
                                         "User skill not found"
                                 ));
 
         if (!userSkill.getUser().getId().equals(userId)) {
-            throw new RuntimeException(
+            throw new UserSkillOwnershipException(
                     "Skill does not belong to this user"
             );
         }

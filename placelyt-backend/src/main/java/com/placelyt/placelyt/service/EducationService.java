@@ -3,6 +3,9 @@ package com.placelyt.placelyt.service;
 import com.placelyt.placelyt.dto.EducationResponse;
 import com.placelyt.placelyt.entity.Education;
 import com.placelyt.placelyt.entity.User;
+import com.placelyt.placelyt.exception.EducationNotFoundException;
+import com.placelyt.placelyt.exception.EducationOwnershipException;
+import com.placelyt.placelyt.exception.UserNotFoundException;
 import com.placelyt.placelyt.repository.EducationRepository;
 import com.placelyt.placelyt.repository.UserRepository;
 import org.springframework.stereotype.Service;
@@ -19,6 +22,7 @@ public class EducationService {
     public EducationService(
             EducationRepository educationRepository,
             UserRepository userRepository) {
+
         this.educationRepository = educationRepository;
         this.userRepository = userRepository;
     }
@@ -28,7 +32,10 @@ public class EducationService {
             Education education) {
 
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() ->
+                        new UserNotFoundException(
+                                "User not found"
+                        ));
 
         education.setUser(user);
 
@@ -38,7 +45,8 @@ public class EducationService {
         return toResponse(savedEducation);
     }
 
-    public List<EducationResponse> getEducationByUserId(Long userId) {
+    public List<EducationResponse> getEducationByUserId(
+            Long userId) {
 
         return educationRepository.findByUserId(userId)
                 .stream()
@@ -54,10 +62,12 @@ public class EducationService {
         Education existingEducation =
                 educationRepository.findById(educationId)
                         .orElseThrow(() ->
-                                new RuntimeException("Education not found"));
+                                new EducationNotFoundException(
+                                        "Education not found"
+                                ));
 
         if (!existingEducation.getUser().getId().equals(userId)) {
-            throw new RuntimeException(
+            throw new EducationOwnershipException(
                     "Education does not belong to this user"
             );
         }
@@ -99,10 +109,12 @@ public class EducationService {
         Education education =
                 educationRepository.findById(educationId)
                         .orElseThrow(() ->
-                                new RuntimeException("Education not found"));
+                                new EducationNotFoundException(
+                                        "Education not found"
+                                ));
 
         if (!education.getUser().getId().equals(userId)) {
-            throw new RuntimeException(
+            throw new EducationOwnershipException(
                     "Education does not belong to this user"
             );
         }
@@ -110,7 +122,8 @@ public class EducationService {
         educationRepository.delete(education);
     }
 
-    private EducationResponse toResponse(Education education) {
+    private EducationResponse toResponse(
+            Education education) {
 
         return new EducationResponse(
                 education.getId(),

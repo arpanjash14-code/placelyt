@@ -3,6 +3,9 @@ package com.placelyt.placelyt.service;
 import com.placelyt.placelyt.dto.StudentProfileResponse;
 import com.placelyt.placelyt.entity.StudentProfile;
 import com.placelyt.placelyt.entity.User;
+import com.placelyt.placelyt.exception.DuplicateStudentProfileException;
+import com.placelyt.placelyt.exception.StudentProfileNotFoundException;
+import com.placelyt.placelyt.exception.UserNotFoundException;
 import com.placelyt.placelyt.repository.StudentProfileRepository;
 import com.placelyt.placelyt.repository.UserRepository;
 import org.springframework.stereotype.Service;
@@ -18,20 +21,26 @@ public class StudentProfileService {
     public StudentProfileService(
             StudentProfileRepository studentProfileRepository,
             UserRepository userRepository) {
+
         this.studentProfileRepository = studentProfileRepository;
         this.userRepository = userRepository;
     }
 
-    public StudentProfileResponse createProfile(Long userId, StudentProfile profile) {
+    public StudentProfileResponse createProfile(
+            Long userId,
+            StudentProfile profile) {
 
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() ->
+                        new UserNotFoundException("User not found"));
 
         Optional<StudentProfile> existingProfile =
                 studentProfileRepository.findByUserId(userId);
 
         if (existingProfile.isPresent()) {
-            throw new RuntimeException("Student profile already exists");
+            throw new DuplicateStudentProfileException(
+                    "Student profile already exists"
+            );
         }
 
         profile.setUser(user);
@@ -44,8 +53,12 @@ public class StudentProfileService {
 
     public StudentProfileResponse getProfileByUserId(Long userId) {
 
-        StudentProfile profile = studentProfileRepository.findByUserId(userId)
-                .orElseThrow(() -> new RuntimeException("Student profile not found"));
+        StudentProfile profile =
+                studentProfileRepository.findByUserId(userId)
+                        .orElseThrow(() ->
+                                new StudentProfileNotFoundException(
+                                        "Student profile not found"
+                                ));
 
         return toResponse(profile);
     }
@@ -54,17 +67,40 @@ public class StudentProfileService {
             Long userId,
             StudentProfile updatedProfile) {
 
-        StudentProfile existingProfile = studentProfileRepository
-                .findByUserId(userId)
-                .orElseThrow(() -> new RuntimeException("Student profile not found"));
+        StudentProfile existingProfile =
+                studentProfileRepository.findByUserId(userId)
+                        .orElseThrow(() ->
+                                new StudentProfileNotFoundException(
+                                        "Student profile not found"
+                                ));
 
-        existingProfile.setFullName(updatedProfile.getFullName());
-        existingProfile.setCollege(updatedProfile.getCollege());
-        existingProfile.setDegree(updatedProfile.getDegree());
-        existingProfile.setBranch(updatedProfile.getBranch());
-        existingProfile.setGraduationYear(updatedProfile.getGraduationYear());
-        existingProfile.setCgpa(updatedProfile.getCgpa());
-        existingProfile.setLocation(updatedProfile.getLocation());
+        existingProfile.setFullName(
+                updatedProfile.getFullName()
+        );
+
+        existingProfile.setCollege(
+                updatedProfile.getCollege()
+        );
+
+        existingProfile.setDegree(
+                updatedProfile.getDegree()
+        );
+
+        existingProfile.setBranch(
+                updatedProfile.getBranch()
+        );
+
+        existingProfile.setGraduationYear(
+                updatedProfile.getGraduationYear()
+        );
+
+        existingProfile.setCgpa(
+                updatedProfile.getCgpa()
+        );
+
+        existingProfile.setLocation(
+                updatedProfile.getLocation()
+        );
 
         StudentProfile savedProfile =
                 studentProfileRepository.save(existingProfile);
@@ -72,7 +108,8 @@ public class StudentProfileService {
         return toResponse(savedProfile);
     }
 
-    private StudentProfileResponse toResponse(StudentProfile profile) {
+    private StudentProfileResponse toResponse(
+            StudentProfile profile) {
 
         return new StudentProfileResponse(
                 profile.getId(),

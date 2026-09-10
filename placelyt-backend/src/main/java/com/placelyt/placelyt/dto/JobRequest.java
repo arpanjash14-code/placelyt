@@ -1,27 +1,54 @@
 package com.placelyt.placelyt.dto;
 
+import jakarta.validation.constraints.DecimalMax;
+import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.PositiveOrZero;
+
 import java.time.LocalDate;
 import java.util.List;
 
 public class JobRequest {
 
+    @NotBlank(message = "Job title is required")
     private String title;
+
+    @NotBlank(message = "Job description is required")
     private String description;
+
+    @NotBlank(message = "Employment type is required")
     private String employmentType;
+
+    @NotBlank(message = "Work mode is required")
     private String workMode;
+
+    @NotBlank(message = "Location is required")
     private String location;
 
+    @PositiveOrZero(message = "Minimum salary cannot be negative")
     private Double minimumSalary;
+
+    @PositiveOrZero(message = "Maximum salary cannot be negative")
     private Double maximumSalary;
+
+    @DecimalMin(value = "0.0", message = "Minimum CGPA cannot be below 0")
+    @DecimalMax(value = "10.0", message = "Minimum CGPA cannot be above 10")
     private Double minimumCgpa;
 
     private String requiredDegree;
+
+    @Min(value = 2000, message = "Graduation year must be 2000 or later")
+    @Max(value = 2100, message = "Graduation year must be 2100 or earlier")
     private Integer eligibleGraduationYear;
 
     private List<String> eligibleBranches;
+
     private List<Long> requiredSkillIds;
 
     private LocalDate applicationDeadline;
+
     private String status;
 
     public JobRequest() {

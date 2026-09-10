@@ -2,6 +2,7 @@ package com.placelyt.placelyt.service;
 
 import com.placelyt.placelyt.dto.SkillResponse;
 import com.placelyt.placelyt.entity.Skill;
+import com.placelyt.placelyt.exception.DuplicateSkillException;
 import com.placelyt.placelyt.repository.SkillRepository;
 import org.springframework.stereotype.Service;
 
@@ -20,7 +21,7 @@ public class SkillService {
     public SkillResponse createSkill(Skill skill) {
 
         if (skillRepository.findByName(skill.getName()).isPresent()) {
-            throw new RuntimeException("Skill already exists");
+            throw new DuplicateSkillException("Skill already exists");
         }
 
         Skill savedSkill = skillRepository.save(skill);

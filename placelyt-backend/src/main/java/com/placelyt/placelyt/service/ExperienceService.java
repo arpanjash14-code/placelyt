@@ -3,6 +3,10 @@ package com.placelyt.placelyt.service;
 import com.placelyt.placelyt.dto.ExperienceResponse;
 import com.placelyt.placelyt.entity.Experience;
 import com.placelyt.placelyt.entity.User;
+import com.placelyt.placelyt.exception.ExperienceNotFoundException;
+import com.placelyt.placelyt.exception.ExperienceOwnershipException;
+import com.placelyt.placelyt.exception.InvalidExperienceException;
+import com.placelyt.placelyt.exception.UserNotFoundException;
 import com.placelyt.placelyt.repository.ExperienceRepository;
 import com.placelyt.placelyt.repository.UserRepository;
 import org.springframework.stereotype.Service;
@@ -28,9 +32,11 @@ public class ExperienceService {
             Long userId,
             Experience experience) {
 
+        validateExperience(experience);
+
         User user = userRepository.findById(userId)
                 .orElseThrow(() ->
-                        new RuntimeException("User not found"));
+                        new UserNotFoundException("User not found"));
 
         experience.setUser(user);
 
@@ -54,15 +60,17 @@ public class ExperienceService {
             Long experienceId,
             Experience updatedExperience) {
 
+        validateExperience(updatedExperience);
+
         Experience existingExperience =
                 experienceRepository.findById(experienceId)
                         .orElseThrow(() ->
-                                new RuntimeException(
+                                new ExperienceNotFoundException(
                                         "Experience not found"
                                 ));
 
         if (!existingExperience.getUser().getId().equals(userId)) {
-            throw new RuntimeException(
+            throw new ExperienceOwnershipException(
                     "Experience does not belong to this user"
             );
         }
@@ -108,17 +116,54 @@ public class ExperienceService {
         Experience experience =
                 experienceRepository.findById(experienceId)
                         .orElseThrow(() ->
-                                new RuntimeException(
+                                new ExperienceNotFoundException(
                                         "Experience not found"
                                 ));
 
         if (!experience.getUser().getId().equals(userId)) {
-            throw new RuntimeException(
+            throw new ExperienceOwnershipException(
                     "Experience does not belong to this user"
             );
         }
 
         experienceRepository.delete(experience);
+    }
+
+    private void validateExperience(Experience experience) {
+
+        if (experience.getCompanyName() == null
+                || experience.getCompanyName().isBlank()) {
+
+            throw new InvalidExperienceException(
+                    "Company name is required"
+            );
+        }
+
+        if (experience.getJobTitle() == null
+                || experience.getJobTitle().isBlank()) {
+
+            throw new InvalidExperienceException(
+                    "Job title is required"
+            );
+        }
+
+        if (experience.getStartDate() != null
+                && experience.getEndDate() != null
+                && experience.getStartDate()
+                        .isAfter(experience.getEndDate())) {
+
+            throw new InvalidExperienceException(
+                    "Start date cannot be after end date"
+            );
+        }
+
+        if (Boolean.TRUE.equals(experience.getCurrentlyWorking())
+                && experience.getEndDate() != null) {
+
+            throw new InvalidExperienceException(
+                    "End date must be empty when currently working"
+            );
+        }
     }
 
     private ExperienceResponse toResponse(

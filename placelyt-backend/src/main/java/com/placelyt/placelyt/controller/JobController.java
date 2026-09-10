@@ -3,6 +3,7 @@ package com.placelyt.placelyt.controller;
 import com.placelyt.placelyt.dto.JobRequest;
 import com.placelyt.placelyt.dto.JobResponse;
 import com.placelyt.placelyt.service.JobService;
+import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -21,7 +22,7 @@ public class JobController {
     @PostMapping("/company/{companyId}")
     public ResponseEntity<JobResponse> createJob(
             @PathVariable Long companyId,
-            @RequestBody JobRequest request) {
+            @Valid @RequestBody JobRequest request) {
 
         return ResponseEntity.ok(
                 jobService.createJob(companyId, request)
@@ -57,7 +58,7 @@ public class JobController {
     @PutMapping("/{jobId}")
     public ResponseEntity<JobResponse> updateJob(
             @PathVariable Long jobId,
-            @RequestBody JobRequest request) {
+            @Valid @RequestBody JobRequest request) {
 
         return ResponseEntity.ok(
                 jobService.updateJob(jobId, request)
