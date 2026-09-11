@@ -7,7 +7,17 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Entity
-@Table(name = "jobs")
+@Table(
+        name = "jobs",
+        indexes = {
+                @Index(name = "idx_jobs_company_id", columnList = "company_id"),
+                @Index(name = "idx_jobs_status", columnList = "status"),
+                @Index(name = "idx_jobs_application_deadline", columnList = "application_deadline"),
+                @Index(name = "idx_jobs_employment_type", columnList = "employment_type"),
+                @Index(name = "idx_jobs_work_mode", columnList = "work_mode"),
+                @Index(name = "idx_jobs_location", columnList = "location")
+        }
+)
 public class Job {
 
     @Id
@@ -23,9 +33,13 @@ public class Job {
     @Column(length = 3000)
     private String description;
 
-    private String employmentType;
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 30)
+    private EmploymentType employmentType;
 
-    private String workMode;
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    private WorkMode workMode;
 
     private String location;
 
@@ -41,7 +55,9 @@ public class Job {
 
     private LocalDate applicationDeadline;
 
-    private String status;
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    private JobStatus status;
 
     @OneToMany(
             mappedBy = "job",
@@ -92,19 +108,19 @@ public class Job {
         this.description = description;
     }
 
-    public String getEmploymentType() {
+    public EmploymentType getEmploymentType() {
         return employmentType;
     }
 
-    public void setEmploymentType(String employmentType) {
+    public void setEmploymentType(EmploymentType employmentType) {
         this.employmentType = employmentType;
     }
 
-    public String getWorkMode() {
+    public WorkMode getWorkMode() {
         return workMode;
     }
 
-    public void setWorkMode(String workMode) {
+    public void setWorkMode(WorkMode workMode) {
         this.workMode = workMode;
     }
 
@@ -164,11 +180,11 @@ public class Job {
         this.applicationDeadline = applicationDeadline;
     }
 
-    public String getStatus() {
+    public JobStatus getStatus() {
         return status;
     }
 
-    public void setStatus(String status) {
+    public void setStatus(JobStatus status) {
         this.status = status;
     }
 

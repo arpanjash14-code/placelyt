@@ -3,12 +3,14 @@ package com.placelyt.placelyt.service;
 import com.placelyt.placelyt.dto.JobRequest;
 import com.placelyt.placelyt.dto.JobResponse;
 import com.placelyt.placelyt.entity.Company;
+import com.placelyt.placelyt.entity.JobStatus;
 import com.placelyt.placelyt.entity.Job;
 import com.placelyt.placelyt.entity.JobEligibleBranch;
 import com.placelyt.placelyt.entity.JobRequiredSkill;
 import com.placelyt.placelyt.entity.Skill;
 import com.placelyt.placelyt.exception.CompanyNotFoundException;
 import com.placelyt.placelyt.exception.JobNotFoundException;
+import com.placelyt.placelyt.exception.InvalidJobException;
 import com.placelyt.placelyt.exception.SkillNotFoundException;
 import com.placelyt.placelyt.repository.CompanyRepository;
 import com.placelyt.placelyt.repository.JobEligibleBranchRepository;
@@ -18,7 +20,10 @@ import com.placelyt.placelyt.repository.SkillRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -51,6 +56,8 @@ public class JobService {
         Company company = companyRepository.findById(companyId)
                 .orElseThrow(() ->
                         new CompanyNotFoundException("Company not found"));
+
+        validateJobRequest(request);
 
         Job job = new Job();
 
@@ -97,6 +104,8 @@ public class JobService {
     public JobResponse updateJob(
             Long jobId,
             JobRequest request) {
+
+        validateJobRequest(request);
 
         Job existingJob = jobRepository.findById(jobId)
                 .orElseThrow(() ->
@@ -194,6 +203,61 @@ public class JobService {
                         new JobNotFoundException("Job not found"));
 
         jobRepository.delete(job);
+    }
+
+
+    private void validateJobRequest(JobRequest request) {
+
+        if (request.getMinimumSalary() != null
+                && request.getMaximumSalary() != null
+                && request.getMinimumSalary() > request.getMaximumSalary()) {
+            throw new InvalidJobException(
+                    "Minimum salary cannot be greater than maximum salary");
+        }
+
+        if (request.getStatus() == JobStatus.OPEN
+                && request.getApplicationDeadline() == null) {
+            throw new InvalidJobException(
+                    "An open job must have an application deadline");
+        }
+
+        if (request.getStatus() == JobStatus.OPEN
+                && request.getApplicationDeadline() != null
+                && request.getApplicationDeadline().isBefore(LocalDate.now())) {
+            throw new InvalidJobException(
+                    "An open job cannot have a past application deadline");
+        }
+
+        validateUniqueValues(request.getEligibleBranches(), "eligible branches");
+        validateUniqueValues(request.getRequiredSkillIds(), "required skills");
+
+        if (request.getEligibleBranches() != null
+                && request.getEligibleBranches().stream().anyMatch(
+                        branch -> branch == null || branch.isBlank())) {
+            throw new InvalidJobException(
+                    "Eligible branches cannot contain blank values");
+        }
+
+        if (request.getRequiredSkillIds() != null
+                && request.getRequiredSkillIds().stream().anyMatch(
+                        skillId -> skillId == null || skillId <= 0)) {
+            throw new InvalidJobException(
+                    "Required skill IDs must be positive");
+        }
+    }
+
+    private <T> void validateUniqueValues(List<T> values, String fieldName) {
+
+        if (values == null) {
+            return;
+        }
+
+        Set<T> uniqueValues = new HashSet<>(values);
+
+        if (uniqueValues.size() != values.size()) {
+            throw new InvalidJobException(
+                    "Duplicate values are not allowed in " + fieldName);
+        }
     }
 
     private void applyRequestToJob(

@@ -1,6 +1,7 @@
 package com.placelyt.placelyt.dto;
 
 import jakarta.validation.constraints.DecimalMax;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.Max;
@@ -10,6 +11,10 @@ import jakarta.validation.constraints.PositiveOrZero;
 import java.time.LocalDate;
 import java.util.List;
 
+import com.placelyt.placelyt.entity.EmploymentType;
+import com.placelyt.placelyt.entity.JobStatus;
+import com.placelyt.placelyt.entity.WorkMode;
+
 public class JobRequest {
 
     @NotBlank(message = "Job title is required")
@@ -18,11 +23,11 @@ public class JobRequest {
     @NotBlank(message = "Job description is required")
     private String description;
 
-    @NotBlank(message = "Employment type is required")
-    private String employmentType;
+    @NotNull(message = "Employment type is required")
+    private EmploymentType employmentType;
 
-    @NotBlank(message = "Work mode is required")
-    private String workMode;
+    @NotNull(message = "Work mode is required")
+    private WorkMode workMode;
 
     @NotBlank(message = "Location is required")
     private String location;
@@ -49,7 +54,8 @@ public class JobRequest {
 
     private LocalDate applicationDeadline;
 
-    private String status;
+    @NotNull(message = "Job status is required")
+    private JobStatus status;
 
     public JobRequest() {
     }
@@ -70,19 +76,19 @@ public class JobRequest {
         this.description = description;
     }
 
-    public String getEmploymentType() {
+    public EmploymentType getEmploymentType() {
         return employmentType;
     }
 
-    public void setEmploymentType(String employmentType) {
+    public void setEmploymentType(EmploymentType employmentType) {
         this.employmentType = employmentType;
     }
 
-    public String getWorkMode() {
+    public WorkMode getWorkMode() {
         return workMode;
     }
 
-    public void setWorkMode(String workMode) {
+    public void setWorkMode(WorkMode workMode) {
         this.workMode = workMode;
     }
 
@@ -158,11 +164,11 @@ public class JobRequest {
         this.applicationDeadline = applicationDeadline;
     }
 
-    public String getStatus() {
+    public JobStatus getStatus() {
         return status;
     }
 
-    public void setStatus(String status) {
+    public void setStatus(JobStatus status) {
         this.status = status;
     }
 }

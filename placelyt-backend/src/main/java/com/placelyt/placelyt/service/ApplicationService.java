@@ -6,6 +6,7 @@ import com.placelyt.placelyt.entity.Application;
 import com.placelyt.placelyt.entity.ApplicationStatus;
 import com.placelyt.placelyt.entity.Job;
 import com.placelyt.placelyt.entity.User;
+import com.placelyt.placelyt.entity.JobStatus;
 import com.placelyt.placelyt.exception.ApplicationNotFoundException;
 import com.placelyt.placelyt.exception.ApplicationOwnershipException;
 import com.placelyt.placelyt.exception.DuplicateApplicationException;
@@ -70,7 +71,7 @@ public class ApplicationService {
             );
         }
 
-        if (!"OPEN".equalsIgnoreCase(job.getStatus())) {
+        if (job.getStatus() != JobStatus.OPEN) {
             throw new JobNotOpenException(
                     "Job is not open for applications"
             );

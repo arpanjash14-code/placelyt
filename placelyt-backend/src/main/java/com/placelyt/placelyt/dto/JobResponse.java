@@ -3,6 +3,10 @@ package com.placelyt.placelyt.dto;
 import java.time.LocalDate;
 import java.util.List;
 
+import com.placelyt.placelyt.entity.EmploymentType;
+import com.placelyt.placelyt.entity.JobStatus;
+import com.placelyt.placelyt.entity.WorkMode;
+
 public class JobResponse {
 
     private Long id;
@@ -11,8 +15,8 @@ public class JobResponse {
 
     private String title;
     private String description;
-    private String employmentType;
-    private String workMode;
+    private EmploymentType employmentType;
+    private WorkMode workMode;
     private String location;
 
     private Double minimumSalary;
@@ -26,7 +30,7 @@ public class JobResponse {
     private List<String> requiredSkills;
 
     private LocalDate applicationDeadline;
-    private String status;
+    private JobStatus status;
 
     public JobResponse(
             Long id,
@@ -34,8 +38,8 @@ public class JobResponse {
             String companyName,
             String title,
             String description,
-            String employmentType,
-            String workMode,
+            EmploymentType employmentType,
+            WorkMode workMode,
             String location,
             Double minimumSalary,
             Double maximumSalary,
@@ -45,7 +49,7 @@ public class JobResponse {
             List<String> eligibleBranches,
             List<String> requiredSkills,
             LocalDate applicationDeadline,
-            String status) {
+            JobStatus status) {
 
         this.id = id;
         this.companyId = companyId;
@@ -86,11 +90,11 @@ public class JobResponse {
         return description;
     }
 
-    public String getEmploymentType() {
+    public EmploymentType getEmploymentType() {
         return employmentType;
     }
 
-    public String getWorkMode() {
+    public WorkMode getWorkMode() {
         return workMode;
     }
 
@@ -130,7 +134,7 @@ public class JobResponse {
         return applicationDeadline;
     }
 
-    public String getStatus() {
+    public JobStatus getStatus() {
         return status;
     }
 }

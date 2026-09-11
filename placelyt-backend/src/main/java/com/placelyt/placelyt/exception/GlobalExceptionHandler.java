@@ -90,6 +90,16 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(error, HttpStatus.NOT_FOUND);
     }
 
+    @ExceptionHandler(InvalidJobException.class)
+    public ResponseEntity<Map<String, String>> handleInvalidJob(
+            InvalidJobException exception) {
+
+        Map<String, String> error = new HashMap<>();
+        error.put("error", exception.getMessage());
+
+        return new ResponseEntity<>(error, HttpStatus.BAD_REQUEST);
+    }
+
     @ExceptionHandler(JobNotFoundException.class)
     public ResponseEntity<Map<String, String>> handleJobNotFound(
             JobNotFoundException exception) {
