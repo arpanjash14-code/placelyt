@@ -19,6 +19,8 @@ import com.placelyt.placelyt.repository.JobRequiredSkillRepository;
 import com.placelyt.placelyt.repository.SkillRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.placelyt.placelyt.dto.JobFilterRequest;
+import com.placelyt.placelyt.specification.JobSpecification;
 
 import java.time.LocalDate;
 import java.util.HashSet;
@@ -91,6 +93,16 @@ public class JobService {
                 .map(this::toResponse)
                 .collect(Collectors.toList());
     }
+
+    public List<JobResponse> filterJobs(JobFilterRequest filter) {
+
+    return jobRepository.findAll(
+                    JobSpecification.withFilters(filter)
+            )
+            .stream()
+            .map(this::toResponse)
+            .collect(Collectors.toList());
+}
 
     public JobResponse getJobById(Long jobId) {
 

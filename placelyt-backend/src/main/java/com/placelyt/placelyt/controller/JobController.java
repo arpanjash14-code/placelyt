@@ -6,6 +6,7 @@ import com.placelyt.placelyt.service.JobService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import com.placelyt.placelyt.dto.JobFilterRequest;
 
 import java.util.List;
 
@@ -45,6 +46,15 @@ public class JobController {
                 jobService.searchJobs(keyword)
         );
     }
+
+    @GetMapping("/filter")
+public ResponseEntity<List<JobResponse>> filterJobs(
+        JobFilterRequest filter) {
+
+    return ResponseEntity.ok(
+            jobService.filterJobs(filter)
+    );
+}
 
     @GetMapping("/{jobId}")
     public ResponseEntity<JobResponse> getJob(

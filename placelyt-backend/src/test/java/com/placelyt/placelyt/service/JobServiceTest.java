@@ -1,8 +1,11 @@
 package com.placelyt.placelyt.service;
 
+import com.placelyt.placelyt.dto.JobFilterRequest;
 import com.placelyt.placelyt.dto.JobRequest;
+import com.placelyt.placelyt.dto.JobResponse;
 import com.placelyt.placelyt.entity.Company;
 import com.placelyt.placelyt.entity.EmploymentType;
+import com.placelyt.placelyt.entity.Job;
 import com.placelyt.placelyt.entity.JobStatus;
 import com.placelyt.placelyt.entity.WorkMode;
 import com.placelyt.placelyt.exception.InvalidJobException;
@@ -16,6 +19,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.jpa.domain.Specification;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -23,6 +27,8 @@ import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -51,6 +57,7 @@ class JobServiceTest {
 
     @BeforeEach
     void setUp() {
+
         jobService = new JobService(
                 jobRepository,
                 companyRepository,
@@ -60,6 +67,8 @@ class JobServiceTest {
         );
 
         company = new Company();
+        company.setId(1L);
+        company.setName("Microsoft");
     }
 
     private JobRequest createValidRequest() {
@@ -117,9 +126,7 @@ class JobServiceTest {
                 exception.getMessage()
         );
 
-        verify(jobRepository, never()).save(
-                org.mockito.ArgumentMatchers.any()
-        );
+        verify(jobRepository, never()).save(any());
     }
 
     @Test
@@ -142,9 +149,7 @@ class JobServiceTest {
                 exception.getMessage()
         );
 
-        verify(jobRepository, never()).save(
-                org.mockito.ArgumentMatchers.any()
-        );
+        verify(jobRepository, never()).save(any());
     }
 
     @Test
@@ -169,9 +174,7 @@ class JobServiceTest {
                 exception.getMessage()
         );
 
-        verify(jobRepository, never()).save(
-                org.mockito.ArgumentMatchers.any()
-        );
+        verify(jobRepository, never()).save(any());
     }
 
     @Test
@@ -196,9 +199,7 @@ class JobServiceTest {
                 exception.getMessage()
         );
 
-        verify(jobRepository, never()).save(
-                org.mockito.ArgumentMatchers.any()
-        );
+        verify(jobRepository, never()).save(any());
     }
 
     @Test
@@ -223,9 +224,7 @@ class JobServiceTest {
                 exception.getMessage()
         );
 
-        verify(jobRepository, never()).save(
-                org.mockito.ArgumentMatchers.any()
-        );
+        verify(jobRepository, never()).save(any());
     }
 
     @Test
@@ -238,7 +237,8 @@ class JobServiceTest {
 
         assertEquals(0, results.size());
 
-        verify(jobRepository).searchByKeyword("java");
+        verify(jobRepository)
+                .searchByKeyword("java");
     }
 
     @Test
@@ -249,7 +249,8 @@ class JobServiceTest {
 
         jobService.searchJobs("  java  ");
 
-        verify(jobRepository).searchByKeyword("java");
+        verify(jobRepository)
+                .searchByKeyword("java");
     }
 
     @Test
@@ -266,7 +267,7 @@ class JobServiceTest {
         );
 
         verify(jobRepository, never())
-                .searchByKeyword(org.mockito.ArgumentMatchers.anyString());
+                .searchByKeyword(anyString());
     }
 
     @Test
@@ -283,6 +284,59 @@ class JobServiceTest {
         );
 
         verify(jobRepository, never())
-                .searchByKeyword(org.mockito.ArgumentMatchers.anyString());
+                .searchByKeyword(anyString());
+    }
+
+    @Test
+    void shouldFilterJobsByWorkMode() {
+
+        JobFilterRequest filter = new JobFilterRequest();
+
+        filter.setWorkMode(WorkMode.REMOTE);
+
+        Job remoteJob = new Job();
+
+        remoteJob.setId(1L);
+        remoteJob.setCompany(company);
+        remoteJob.setTitle("Remote Backend Developer");
+        remoteJob.setDescription("Backend development");
+
+        remoteJob.setEmploymentType(
+                EmploymentType.FULL_TIME
+        );
+
+        remoteJob.setWorkMode(
+                WorkMode.REMOTE
+        );
+
+        remoteJob.setLocation("Kolkata");
+
+        remoteJob.setStatus(
+                JobStatus.OPEN
+        );
+
+        when(
+                jobRepository.findAll(
+                        org.mockito.ArgumentMatchers
+        .<Specification<Job>>any()
+                )
+        ).thenReturn(
+                List.of(remoteJob)
+        );
+
+        List<JobResponse> result =
+                jobService.filterJobs(filter);
+
+        assertEquals(1, result.size());
+
+        assertEquals(
+                WorkMode.REMOTE,
+                result.get(0).getWorkMode()
+        );
+
+        verify(jobRepository).findAll(
+                org.mockito.ArgumentMatchers
+        .<Specification<Job>>any()
+        );
     }
 }
