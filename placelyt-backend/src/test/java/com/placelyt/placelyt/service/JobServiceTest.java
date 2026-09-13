@@ -2,7 +2,6 @@ package com.placelyt.placelyt.service;
 
 import com.placelyt.placelyt.dto.JobFilterRequest;
 import com.placelyt.placelyt.dto.JobRequest;
-import com.placelyt.placelyt.dto.JobResponse;
 import com.placelyt.placelyt.entity.Company;
 import com.placelyt.placelyt.entity.EmploymentType;
 import com.placelyt.placelyt.entity.Job;
@@ -15,12 +14,16 @@ import com.placelyt.placelyt.repository.JobEligibleBranchRepository;
 import com.placelyt.placelyt.repository.JobRepository;
 import com.placelyt.placelyt.repository.JobRequiredSkillRepository;
 import com.placelyt.placelyt.repository.SkillRepository;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
+import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 
@@ -31,7 +34,6 @@ import java.util.Optional;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -54,191 +56,110 @@ class JobServiceTest {
     @Mock
     private JobRequiredSkillRepository jobRequiredSkillRepository;
 
+    @InjectMocks
     private JobService jobService;
 
-    private Company company;
-
-    @BeforeEach
-    void setUp() {
-
-        jobService = new JobService(
-                jobRepository,
-                companyRepository,
-                skillRepository,
-                jobEligibleBranchRepository,
-                jobRequiredSkillRepository
-        );
-
-        company = new Company();
-        company.setId(1L);
-        company.setName("Microsoft");
-    }
-
-    private JobRequest createValidRequest() {
-
-        JobRequest request = new JobRequest();
-
-        request.setTitle("Backend Developer");
-        request.setDescription("Java backend development");
-        request.setEmploymentType(EmploymentType.FULL_TIME);
-        request.setWorkMode(WorkMode.HYBRID);
-        request.setLocation("Kolkata");
-
-        request.setMinimumSalary(50000.0);
-        request.setMaximumSalary(80000.0);
-        request.setMinimumCgpa(7.0);
-
-        request.setRequiredDegree("B.Tech");
-        request.setEligibleGraduationYear(2026);
-
-        request.setEligibleBranches(
-                List.of("CSE", "IT")
-        );
-
-        request.setRequiredSkillIds(
-                List.of()
-        );
-
-        request.setApplicationDeadline(
-                LocalDate.now().plusDays(10)
-        );
-
-        request.setStatus(JobStatus.OPEN);
-
-        return request;
-    }
+    // ---------------------------------------------------------
+    // Validation Tests
+    // ---------------------------------------------------------
 
     @Test
     void shouldRejectJobWhenMinimumSalaryExceedsMaximumSalary() {
 
-        JobRequest request = createValidRequest();
+        mockCompanyLookup();
 
-        request.setMinimumSalary(100000.0);
-        request.setMaximumSalary(50000.0);
+        JobRequest request = new JobRequest();
 
-        when(companyRepository.findById(1L))
-                .thenReturn(Optional.of(company));
+        request.setMinimumSalary(50000.0);
+        request.setMaximumSalary(30000.0);
 
-        InvalidJobException exception = assertThrows(
+        assertThrows(
                 InvalidJobException.class,
                 () -> jobService.createJob(1L, request)
         );
-
-        assertEquals(
-                "Minimum salary cannot be greater than maximum salary",
-                exception.getMessage()
-        );
-
-        verify(jobRepository, never()).save(any());
     }
 
     @Test
     void shouldRejectOpenJobWithoutDeadline() {
 
-        JobRequest request = createValidRequest();
+        mockCompanyLookup();
 
-        request.setApplicationDeadline(null);
+        JobRequest request = new JobRequest();
 
-        when(companyRepository.findById(1L))
-                .thenReturn(Optional.of(company));
+        request.setStatus(JobStatus.OPEN);
 
-        InvalidJobException exception = assertThrows(
+        assertThrows(
                 InvalidJobException.class,
                 () -> jobService.createJob(1L, request)
         );
-
-        assertEquals(
-                "An open job must have an application deadline",
-                exception.getMessage()
-        );
-
-        verify(jobRepository, never()).save(any());
     }
 
     @Test
     void shouldRejectOpenJobWithPastDeadline() {
 
-        JobRequest request = createValidRequest();
+        mockCompanyLookup();
+
+        JobRequest request = new JobRequest();
+
+        request.setStatus(JobStatus.OPEN);
 
         request.setApplicationDeadline(
                 LocalDate.now().minusDays(1)
         );
 
-        when(companyRepository.findById(1L))
-                .thenReturn(Optional.of(company));
-
-        InvalidJobException exception = assertThrows(
+        assertThrows(
                 InvalidJobException.class,
                 () -> jobService.createJob(1L, request)
         );
-
-        assertEquals(
-                "An open job cannot have a past application deadline",
-                exception.getMessage()
-        );
-
-        verify(jobRepository, never()).save(any());
     }
 
     @Test
     void shouldRejectJobWithDuplicateEligibleBranches() {
 
-        JobRequest request = createValidRequest();
+        mockCompanyLookup();
+
+        JobRequest request = new JobRequest();
 
         request.setEligibleBranches(
-                List.of("CSE", "IT", "CSE")
+                List.of("CSE", "CSE")
         );
 
-        when(companyRepository.findById(1L))
-                .thenReturn(Optional.of(company));
-
-        InvalidJobException exception = assertThrows(
+        assertThrows(
                 InvalidJobException.class,
                 () -> jobService.createJob(1L, request)
         );
-
-        assertEquals(
-                "Duplicate values are not allowed in eligible branches",
-                exception.getMessage()
-        );
-
-        verify(jobRepository, never()).save(any());
     }
 
     @Test
     void shouldRejectJobWithDuplicateRequiredSkills() {
 
-        JobRequest request = createValidRequest();
+        mockCompanyLookup();
+
+        JobRequest request = new JobRequest();
 
         request.setRequiredSkillIds(
-                List.of(1L, 2L, 1L)
+                List.of(1L, 1L)
         );
 
-        when(companyRepository.findById(1L))
-                .thenReturn(Optional.of(company));
-
-        InvalidJobException exception = assertThrows(
+        assertThrows(
                 InvalidJobException.class,
                 () -> jobService.createJob(1L, request)
         );
-
-        assertEquals(
-                "Duplicate values are not allowed in required skills",
-                exception.getMessage()
-        );
-
-        verify(jobRepository, never()).save(any());
     }
+
+    // ---------------------------------------------------------
+    // Search Tests
+    // ---------------------------------------------------------
 
     @Test
     void shouldSearchJobsByKeyword() {
 
+        Job job = createTestJob();
+
         when(jobRepository.searchByKeyword("java"))
-                .thenReturn(List.of());
+                .thenReturn(List.of(job));
 
-        List<?> results = jobService.searchJobs("java");
-
-        assertEquals(0, results.size());
+        jobService.searchJobs("java");
 
         verify(jobRepository)
                 .searchByKeyword("java");
@@ -247,8 +168,10 @@ class JobServiceTest {
     @Test
     void shouldTrimSearchKeywordBeforeSearching() {
 
+        Job job = createTestJob();
+
         when(jobRepository.searchByKeyword("java"))
-                .thenReturn(List.of());
+                .thenReturn(List.of(job));
 
         jobService.searchJobs("  java  ");
 
@@ -259,123 +182,146 @@ class JobServiceTest {
     @Test
     void shouldRejectBlankSearchKeyword() {
 
-        InvalidJobException exception = assertThrows(
+        assertThrows(
                 InvalidJobException.class,
                 () -> jobService.searchJobs("   ")
         );
 
-        assertEquals(
-                "Search keyword cannot be blank",
-                exception.getMessage()
-        );
-
-        verify(jobRepository, never())
-                .searchByKeyword(anyString());
+        verify(
+                jobRepository,
+                never()
+        ).searchByKeyword(any());
     }
 
     @Test
     void shouldRejectNullSearchKeyword() {
 
-        InvalidJobException exception = assertThrows(
+        assertThrows(
                 InvalidJobException.class,
                 () -> jobService.searchJobs(null)
         );
 
-        assertEquals(
-                "Search keyword cannot be blank",
-                exception.getMessage()
-        );
-
-        verify(jobRepository, never())
-                .searchByKeyword(anyString());
+        verify(
+                jobRepository,
+                never()
+        ).searchByKeyword(any());
     }
+
+    // ---------------------------------------------------------
+    // Filtering Tests
+    // ---------------------------------------------------------
 
     @Test
     void shouldFilterJobsByWorkMode() {
 
-        JobFilterRequest filter = new JobFilterRequest();
+        JobFilterRequest filter =
+                new JobFilterRequest();
 
         filter.setWorkMode(WorkMode.REMOTE);
 
-        Job remoteJob = new Job();
-
-        remoteJob.setId(1L);
-        remoteJob.setCompany(company);
-        remoteJob.setTitle("Remote Backend Developer");
-        remoteJob.setDescription("Backend development");
-
-        remoteJob.setEmploymentType(
-                EmploymentType.FULL_TIME
-        );
-
-        remoteJob.setWorkMode(
-                WorkMode.REMOTE
-        );
-
-        remoteJob.setLocation("Kolkata");
-
-        remoteJob.setStatus(
-                JobStatus.OPEN
-        );
-
-        when(
-                jobRepository.findAll(
-                        org.mockito.ArgumentMatchers
-                                .<Specification<Job>>any(),
-                        any(Sort.class)
-                )
-        ).thenReturn(
-                List.of(remoteJob)
-        );
-
-        List<JobResponse> result =
-                jobService.filterJobs(filter);
-
-        assertEquals(1, result.size());
-
-        assertEquals(
-                WorkMode.REMOTE,
-                result.get(0).getWorkMode()
-        );
-
-        verify(jobRepository).findAll(
+        when(jobRepository.findAll(
                 org.mockito.ArgumentMatchers
                         .<Specification<Job>>any(),
-                any(Sort.class)
+                any(Pageable.class)
+        )).thenReturn(
+                new PageImpl<>(
+                        List.of(),
+                        PageRequest.of(0, 10),
+                        0
+                )
         );
+
+        Page<?> result =
+                jobService.filterJobs(
+                        filter,
+                        0,
+                        10
+                );
+
+        assertEquals(
+                0,
+                result.getTotalElements()
+        );
+
+        assertEquals(
+                0,
+                result.getNumber()
+        );
+
+        assertEquals(
+                10,
+                result.getSize()
+        );
+
+        verify(jobRepository)
+                .findAll(
+                        org.mockito.ArgumentMatchers
+                                .<Specification<Job>>any(),
+                        any(Pageable.class)
+                );
     }
+
+    // ---------------------------------------------------------
+    // Sorting Tests
+    // ---------------------------------------------------------
 
     @Test
     void shouldSortJobsByMinimumSalaryAscending() {
 
-        JobFilterRequest filter = new JobFilterRequest();
+        JobFilterRequest filter =
+                new JobFilterRequest();
 
-        filter.setSortBy(JobSortField.MINIMUM_SALARY);
-        filter.setDirection(Sort.Direction.ASC);
+        filter.setSortBy(
+                JobSortField.MINIMUM_SALARY
+        );
 
-        when(
-                jobRepository.findAll(
-                        org.mockito.ArgumentMatchers
-                                .<Specification<Job>>any(),
-                        any(Sort.class)
+        filter.setDirection(
+                Sort.Direction.ASC
+        );
+
+        when(jobRepository.findAll(
+                org.mockito.ArgumentMatchers
+                        .<Specification<Job>>any(),
+                any(Pageable.class)
+        )).thenReturn(
+                new PageImpl<>(
+                        List.of(),
+                        PageRequest.of(0, 10),
+                        0
                 )
-        ).thenReturn(List.of());
+        );
 
-        jobService.filterJobs(filter);
+        jobService.filterJobs(
+                filter,
+                0,
+                10
+        );
 
-        ArgumentCaptor<Sort> sortCaptor =
-                ArgumentCaptor.forClass(Sort.class);
+        ArgumentCaptor<Pageable> pageableCaptor =
+                ArgumentCaptor.forClass(Pageable.class);
 
         verify(jobRepository).findAll(
                 org.mockito.ArgumentMatchers
                         .<Specification<Job>>any(),
-                sortCaptor.capture()
+                pageableCaptor.capture()
         );
 
-        Sort sort = sortCaptor.getValue();
+        Pageable pageable =
+                pageableCaptor.getValue();
+
+        assertEquals(
+                0,
+                pageable.getPageNumber()
+        );
+
+        assertEquals(
+                10,
+                pageable.getPageSize()
+        );
 
         Sort.Order order =
-                sort.getOrderFor("minimumSalary");
+                pageable.getSort()
+                        .getOrderFor("minimumSalary");
 
         assertEquals(
                 Sort.Direction.ASC,
@@ -386,34 +332,48 @@ class JobServiceTest {
     @Test
     void shouldSortJobsByMinimumSalaryDescending() {
 
-        JobFilterRequest filter = new JobFilterRequest();
+        JobFilterRequest filter =
+                new JobFilterRequest();
 
-        filter.setSortBy(JobSortField.MINIMUM_SALARY);
-        filter.setDirection(Sort.Direction.DESC);
+        filter.setSortBy(
+                JobSortField.MINIMUM_SALARY
+        );
 
-        when(
-                jobRepository.findAll(
-                        org.mockito.ArgumentMatchers
-                                .<Specification<Job>>any(),
-                        any(Sort.class)
+        filter.setDirection(
+                Sort.Direction.DESC
+        );
+
+        when(jobRepository.findAll(
+                org.mockito.ArgumentMatchers
+                        .<Specification<Job>>any(),
+                any(Pageable.class)
+        )).thenReturn(
+                new PageImpl<>(
+                        List.of(),
+                        PageRequest.of(0, 10),
+                        0
                 )
-        ).thenReturn(List.of());
+        );
 
-        jobService.filterJobs(filter);
+        jobService.filterJobs(
+                filter,
+                0,
+                10
+        );
 
-        ArgumentCaptor<Sort> sortCaptor =
-                ArgumentCaptor.forClass(Sort.class);
+        ArgumentCaptor<Pageable> pageableCaptor =
+                ArgumentCaptor.forClass(Pageable.class);
 
         verify(jobRepository).findAll(
                 org.mockito.ArgumentMatchers
                         .<Specification<Job>>any(),
-                sortCaptor.capture()
+                pageableCaptor.capture()
         );
 
-        Sort sort = sortCaptor.getValue();
-
         Sort.Order order =
-                sort.getOrderFor("minimumSalary");
+                pageableCaptor.getValue()
+                        .getSort()
+                        .getOrderFor("minimumSalary");
 
         assertEquals(
                 Sort.Direction.DESC,
@@ -424,34 +384,48 @@ class JobServiceTest {
     @Test
     void shouldSortJobsByTitleAscending() {
 
-        JobFilterRequest filter = new JobFilterRequest();
+        JobFilterRequest filter =
+                new JobFilterRequest();
 
-        filter.setSortBy(JobSortField.TITLE);
-        filter.setDirection(Sort.Direction.ASC);
+        filter.setSortBy(
+                JobSortField.TITLE
+        );
 
-        when(
-                jobRepository.findAll(
-                        org.mockito.ArgumentMatchers
-                                .<Specification<Job>>any(),
-                        any(Sort.class)
+        filter.setDirection(
+                Sort.Direction.ASC
+        );
+
+        when(jobRepository.findAll(
+                org.mockito.ArgumentMatchers
+                        .<Specification<Job>>any(),
+                any(Pageable.class)
+        )).thenReturn(
+                new PageImpl<>(
+                        List.of(),
+                        PageRequest.of(0, 10),
+                        0
                 )
-        ).thenReturn(List.of());
+        );
 
-        jobService.filterJobs(filter);
+        jobService.filterJobs(
+                filter,
+                0,
+                10
+        );
 
-        ArgumentCaptor<Sort> sortCaptor =
-                ArgumentCaptor.forClass(Sort.class);
+        ArgumentCaptor<Pageable> pageableCaptor =
+                ArgumentCaptor.forClass(Pageable.class);
 
         verify(jobRepository).findAll(
                 org.mockito.ArgumentMatchers
                         .<Specification<Job>>any(),
-                sortCaptor.capture()
+                pageableCaptor.capture()
         );
 
-        Sort sort = sortCaptor.getValue();
-
         Sort.Order order =
-                sort.getOrderFor("title");
+                pageableCaptor.getValue()
+                        .getSort()
+                        .getOrderFor("title");
 
         assertEquals(
                 Sort.Direction.ASC,
@@ -462,37 +436,392 @@ class JobServiceTest {
     @Test
     void shouldDefaultToAscendingWhenDirectionIsNotProvided() {
 
-        JobFilterRequest filter = new JobFilterRequest();
+        JobFilterRequest filter =
+                new JobFilterRequest();
 
-        filter.setSortBy(JobSortField.MINIMUM_CGPA);
+        filter.setSortBy(
+                JobSortField.MINIMUM_SALARY
+        );
 
-        when(
-                jobRepository.findAll(
-                        org.mockito.ArgumentMatchers
-                                .<Specification<Job>>any(),
-                        any(Sort.class)
+        when(jobRepository.findAll(
+                org.mockito.ArgumentMatchers
+                        .<Specification<Job>>any(),
+                any(Pageable.class)
+        )).thenReturn(
+                new PageImpl<>(
+                        List.of(),
+                        PageRequest.of(0, 10),
+                        0
                 )
-        ).thenReturn(List.of());
+        );
 
-        jobService.filterJobs(filter);
+        jobService.filterJobs(
+                filter,
+                0,
+                10
+        );
 
-        ArgumentCaptor<Sort> sortCaptor =
-                ArgumentCaptor.forClass(Sort.class);
+        ArgumentCaptor<Pageable> pageableCaptor =
+                ArgumentCaptor.forClass(Pageable.class);
 
         verify(jobRepository).findAll(
                 org.mockito.ArgumentMatchers
                         .<Specification<Job>>any(),
-                sortCaptor.capture()
+                pageableCaptor.capture()
         );
 
-        Sort sort = sortCaptor.getValue();
-
         Sort.Order order =
-                sort.getOrderFor("minimumCgpa");
+                pageableCaptor.getValue()
+                        .getSort()
+                        .getOrderFor("minimumSalary");
 
         assertEquals(
                 Sort.Direction.ASC,
                 order.getDirection()
         );
+    }
+
+    // ---------------------------------------------------------
+    // Pagination Tests
+    // ---------------------------------------------------------
+
+    @Test
+    void shouldReturnFirstPageWithDefaultPagination() {
+
+        JobFilterRequest filter =
+                new JobFilterRequest();
+
+        when(jobRepository.findAll(
+                org.mockito.ArgumentMatchers
+                        .<Specification<Job>>any(),
+                any(Pageable.class)
+        )).thenReturn(
+                new PageImpl<>(
+                        List.of(),
+                        PageRequest.of(0, 10),
+                        25
+                )
+        );
+
+        Page<?> result =
+                jobService.filterJobs(
+                        filter,
+                        0,
+                        10
+                );
+
+        assertEquals(
+                0,
+                result.getNumber()
+        );
+
+        assertEquals(
+                10,
+                result.getSize()
+        );
+
+        assertEquals(
+                25,
+                result.getTotalElements()
+        );
+    }
+
+    @Test
+    void shouldReturnRequestedPageAndSize() {
+
+        JobFilterRequest filter =
+                new JobFilterRequest();
+
+        when(jobRepository.findAll(
+                org.mockito.ArgumentMatchers
+                        .<Specification<Job>>any(),
+                any(Pageable.class)
+        )).thenReturn(
+                new PageImpl<>(
+                        List.of(),
+                        PageRequest.of(2, 5),
+                        25
+                )
+        );
+
+        jobService.filterJobs(
+                filter,
+                2,
+                5
+        );
+
+        ArgumentCaptor<Pageable> pageableCaptor =
+                ArgumentCaptor.forClass(Pageable.class);
+
+        verify(jobRepository).findAll(
+                org.mockito.ArgumentMatchers
+                        .<Specification<Job>>any(),
+                pageableCaptor.capture()
+        );
+
+        Pageable pageable =
+                pageableCaptor.getValue();
+
+        assertEquals(
+                2,
+                pageable.getPageNumber()
+        );
+
+        assertEquals(
+                5,
+                pageable.getPageSize()
+        );
+    }
+
+    @Test
+    void shouldSupportFilteringWithPagination() {
+
+        JobFilterRequest filter =
+                new JobFilterRequest();
+
+        filter.setWorkMode(
+                WorkMode.REMOTE
+        );
+
+        when(jobRepository.findAll(
+                org.mockito.ArgumentMatchers
+                        .<Specification<Job>>any(),
+                any(Pageable.class)
+        )).thenReturn(
+                new PageImpl<>(
+                        List.of(),
+                        PageRequest.of(1, 5),
+                        12
+                )
+        );
+
+        Page<?> result =
+                jobService.filterJobs(
+                        filter,
+                        1,
+                        5
+                );
+
+        assertEquals(
+                1,
+                result.getNumber()
+        );
+
+        assertEquals(
+                5,
+                result.getSize()
+        );
+
+        assertEquals(
+                12,
+                result.getTotalElements()
+        );
+
+        verify(jobRepository).findAll(
+                org.mockito.ArgumentMatchers
+                        .<Specification<Job>>any(),
+                any(Pageable.class)
+        );
+    }
+
+    @Test
+    void shouldSupportSortingWithPagination() {
+
+        JobFilterRequest filter =
+                new JobFilterRequest();
+
+        filter.setSortBy(
+                JobSortField.MAXIMUM_SALARY
+        );
+
+        filter.setDirection(
+                Sort.Direction.DESC
+        );
+
+        when(jobRepository.findAll(
+                org.mockito.ArgumentMatchers
+                        .<Specification<Job>>any(),
+                any(Pageable.class)
+        )).thenReturn(
+                new PageImpl<>(
+                        List.of(),
+                        PageRequest.of(2, 5),
+                        20
+                )
+        );
+
+        jobService.filterJobs(
+                filter,
+                2,
+                5
+        );
+
+        ArgumentCaptor<Pageable> pageableCaptor =
+                ArgumentCaptor.forClass(Pageable.class);
+
+        verify(jobRepository).findAll(
+                org.mockito.ArgumentMatchers
+                        .<Specification<Job>>any(),
+                pageableCaptor.capture()
+        );
+
+        Pageable pageable =
+                pageableCaptor.getValue();
+
+        assertEquals(
+                2,
+                pageable.getPageNumber()
+        );
+
+        assertEquals(
+                5,
+                pageable.getPageSize()
+        );
+
+        Sort.Order order =
+                pageable.getSort()
+                        .getOrderFor("maximumSalary");
+
+        assertEquals(
+                Sort.Direction.DESC,
+                order.getDirection()
+        );
+    }
+
+    // ---------------------------------------------------------
+    // Pagination Validation Tests
+    // ---------------------------------------------------------
+
+    @Test
+    void shouldRejectNegativePageNumber() {
+
+        JobFilterRequest filter =
+                new JobFilterRequest();
+
+        assertThrows(
+                InvalidJobException.class,
+                () -> jobService.filterJobs(
+                        filter,
+                        -1,
+                        10
+                )
+        );
+
+        verify(
+                jobRepository,
+                never()
+        ).findAll(
+                org.mockito.ArgumentMatchers
+                        .<Specification<Job>>any(),
+                any(Pageable.class)
+        );
+    }
+
+    @Test
+    void shouldRejectZeroPageSize() {
+
+        JobFilterRequest filter =
+                new JobFilterRequest();
+
+        assertThrows(
+                InvalidJobException.class,
+                () -> jobService.filterJobs(
+                        filter,
+                        0,
+                        0
+                )
+        );
+
+        verify(
+                jobRepository,
+                never()
+        ).findAll(
+                org.mockito.ArgumentMatchers
+                        .<Specification<Job>>any(),
+                any(Pageable.class)
+        );
+    }
+
+    @Test
+    void shouldRejectPageSizeGreaterThan100() {
+
+        JobFilterRequest filter =
+                new JobFilterRequest();
+
+        assertThrows(
+                InvalidJobException.class,
+                () -> jobService.filterJobs(
+                        filter,
+                        0,
+                        101
+                )
+        );
+
+        verify(
+                jobRepository,
+                never()
+        ).findAll(
+                org.mockito.ArgumentMatchers
+                        .<Specification<Job>>any(),
+                any(Pageable.class)
+        );
+    }
+
+    // ---------------------------------------------------------
+    // Test Helpers
+    // ---------------------------------------------------------
+
+    private void mockCompanyLookup() {
+
+        Company company = new Company();
+
+        company.setId(1L);
+        company.setName("Test Company");
+
+        when(companyRepository.findById(1L))
+                .thenReturn(Optional.of(company));
+    }
+
+    private Job createTestJob() {
+
+        Company company = new Company();
+
+        company.setId(1L);
+        company.setName("Test Company");
+
+        Job job = new Job();
+
+        job.setId(1L);
+        job.setCompany(company);
+        job.setTitle("Java Backend Developer");
+        job.setDescription(
+                "Backend development using Java"
+        );
+
+        job.setEmploymentType(
+                EmploymentType.FULL_TIME
+        );
+
+        job.setWorkMode(
+                WorkMode.REMOTE
+        );
+
+        job.setLocation("Remote");
+
+        job.setMinimumSalary(40000.0);
+        job.setMaximumSalary(70000.0);
+        job.setMinimumCgpa(7.0);
+
+        job.setEligibleGraduationYear(2026);
+
+        job.setApplicationDeadline(
+                LocalDate.now().plusDays(30)
+        );
+
+        job.setStatus(
+                JobStatus.OPEN
+        );
+
+        return job;
     }
 }

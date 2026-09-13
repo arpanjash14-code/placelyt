@@ -20,6 +20,9 @@ import com.placelyt.placelyt.repository.JobRepository;
 import com.placelyt.placelyt.repository.JobRequiredSkillRepository;
 import com.placelyt.placelyt.repository.SkillRepository;
 import com.placelyt.placelyt.specification.JobSpecification;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -32,6 +35,8 @@ import java.util.stream.Collectors;
 
 @Service
 public class JobService {
+
+    private static final int MAX_PAGE_SIZE = 100;
 
     private final JobRepository jobRepository;
     private final CompanyRepository companyRepository;
@@ -96,7 +101,12 @@ public class JobService {
                 .collect(Collectors.toList());
     }
 
-    public List<JobResponse> filterJobs(JobFilterRequest filter) {
+    public Page<JobResponse> filterJobs(
+            JobFilterRequest filter,
+            int page,
+            int size) {
+
+        validatePagination(page, size);
 
         Sort sort = Sort.unsorted();
 
@@ -113,13 +123,38 @@ public class JobService {
             );
         }
 
+        Pageable pageable =
+                PageRequest.of(page, size, sort);
+
         return jobRepository.findAll(
                         JobSpecification.withFilters(filter),
-                        sort
+                        pageable
                 )
-                .stream()
-                .map(this::toResponse)
-                .collect(Collectors.toList());
+                .map(this::toResponse);
+    }
+
+    private void validatePagination(
+            int page,
+            int size) {
+
+        if (page < 0) {
+            throw new InvalidJobException(
+                    "Page number cannot be negative"
+            );
+        }
+
+        if (size < 1) {
+            throw new InvalidJobException(
+                    "Page size must be at least 1"
+            );
+        }
+
+        if (size > MAX_PAGE_SIZE) {
+            throw new InvalidJobException(
+                    "Page size cannot exceed "
+                            + MAX_PAGE_SIZE
+            );
+        }
     }
 
     private String getSortProperty(JobSortField sortField) {

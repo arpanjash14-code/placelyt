@@ -1,12 +1,13 @@
 package com.placelyt.placelyt.controller;
 
+import com.placelyt.placelyt.dto.JobFilterRequest;
 import com.placelyt.placelyt.dto.JobRequest;
 import com.placelyt.placelyt.dto.JobResponse;
 import com.placelyt.placelyt.service.JobService;
 import jakarta.validation.Valid;
+import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import com.placelyt.placelyt.dto.JobFilterRequest;
 
 import java.util.List;
 
@@ -48,13 +49,19 @@ public class JobController {
     }
 
     @GetMapping("/filter")
-public ResponseEntity<List<JobResponse>> filterJobs(
-        JobFilterRequest filter) {
+    public ResponseEntity<Page<JobResponse>> filterJobs(
+            JobFilterRequest filter,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
 
-    return ResponseEntity.ok(
-            jobService.filterJobs(filter)
-    );
-}
+        return ResponseEntity.ok(
+                jobService.filterJobs(
+                        filter,
+                        page,
+                        size
+                )
+        );
+    }
 
     @GetMapping("/{jobId}")
     public ResponseEntity<JobResponse> getJob(
