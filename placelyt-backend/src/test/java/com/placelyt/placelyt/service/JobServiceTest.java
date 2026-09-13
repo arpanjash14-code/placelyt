@@ -117,7 +117,9 @@ class JobServiceTest {
                 exception.getMessage()
         );
 
-        verify(jobRepository, never()).save(org.mockito.ArgumentMatchers.any());
+        verify(jobRepository, never()).save(
+                org.mockito.ArgumentMatchers.any()
+        );
     }
 
     @Test
@@ -140,7 +142,9 @@ class JobServiceTest {
                 exception.getMessage()
         );
 
-        verify(jobRepository, never()).save(org.mockito.ArgumentMatchers.any());
+        verify(jobRepository, never()).save(
+                org.mockito.ArgumentMatchers.any()
+        );
     }
 
     @Test
@@ -165,7 +169,9 @@ class JobServiceTest {
                 exception.getMessage()
         );
 
-        verify(jobRepository, never()).save(org.mockito.ArgumentMatchers.any());
+        verify(jobRepository, never()).save(
+                org.mockito.ArgumentMatchers.any()
+        );
     }
 
     @Test
@@ -190,33 +196,93 @@ class JobServiceTest {
                 exception.getMessage()
         );
 
-        verify(jobRepository, never()).save(org.mockito.ArgumentMatchers.any());
+        verify(jobRepository, never()).save(
+                org.mockito.ArgumentMatchers.any()
+        );
     }
 
     @Test
-void shouldRejectJobWithDuplicateRequiredSkills() {
+    void shouldRejectJobWithDuplicateRequiredSkills() {
 
-    JobRequest request = createValidRequest();
+        JobRequest request = createValidRequest();
 
-    request.setRequiredSkillIds(
-            List.of(1L, 2L, 1L)
-    );
+        request.setRequiredSkillIds(
+                List.of(1L, 2L, 1L)
+        );
 
-    when(companyRepository.findById(1L))
-            .thenReturn(Optional.of(company));
+        when(companyRepository.findById(1L))
+                .thenReturn(Optional.of(company));
 
-    InvalidJobException exception = assertThrows(
-            InvalidJobException.class,
-            () -> jobService.createJob(1L, request)
-    );
+        InvalidJobException exception = assertThrows(
+                InvalidJobException.class,
+                () -> jobService.createJob(1L, request)
+        );
 
-    assertEquals(
-            "Duplicate values are not allowed in required skills",
-            exception.getMessage()
-    );
+        assertEquals(
+                "Duplicate values are not allowed in required skills",
+                exception.getMessage()
+        );
 
-    verify(jobRepository, never()).save(
-            org.mockito.ArgumentMatchers.any()
-    );
-}
+        verify(jobRepository, never()).save(
+                org.mockito.ArgumentMatchers.any()
+        );
+    }
+
+    @Test
+    void shouldSearchJobsByKeyword() {
+
+        when(jobRepository.searchByKeyword("java"))
+                .thenReturn(List.of());
+
+        List<?> results = jobService.searchJobs("java");
+
+        assertEquals(0, results.size());
+
+        verify(jobRepository).searchByKeyword("java");
+    }
+
+    @Test
+    void shouldTrimSearchKeywordBeforeSearching() {
+
+        when(jobRepository.searchByKeyword("java"))
+                .thenReturn(List.of());
+
+        jobService.searchJobs("  java  ");
+
+        verify(jobRepository).searchByKeyword("java");
+    }
+
+    @Test
+    void shouldRejectBlankSearchKeyword() {
+
+        InvalidJobException exception = assertThrows(
+                InvalidJobException.class,
+                () -> jobService.searchJobs("   ")
+        );
+
+        assertEquals(
+                "Search keyword cannot be blank",
+                exception.getMessage()
+        );
+
+        verify(jobRepository, never())
+                .searchByKeyword(org.mockito.ArgumentMatchers.anyString());
+    }
+
+    @Test
+    void shouldRejectNullSearchKeyword() {
+
+        InvalidJobException exception = assertThrows(
+                InvalidJobException.class,
+                () -> jobService.searchJobs(null)
+        );
+
+        assertEquals(
+                "Search keyword cannot be blank",
+                exception.getMessage()
+        );
+
+        verify(jobRepository, never())
+                .searchByKeyword(org.mockito.ArgumentMatchers.anyString());
+    }
 }

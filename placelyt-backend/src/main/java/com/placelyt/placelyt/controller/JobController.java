@@ -37,6 +37,15 @@ public class JobController {
         );
     }
 
+    @GetMapping("/search")
+    public ResponseEntity<List<JobResponse>> searchJobs(
+            @RequestParam String keyword) {
+
+        return ResponseEntity.ok(
+                jobService.searchJobs(keyword)
+        );
+    }
+
     @GetMapping("/{jobId}")
     public ResponseEntity<JobResponse> getJob(
             @PathVariable Long jobId) {

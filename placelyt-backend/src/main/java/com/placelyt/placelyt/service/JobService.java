@@ -78,6 +78,20 @@ public class JobService {
                 .collect(Collectors.toList());
     }
 
+    public List<JobResponse> searchJobs(String keyword) {
+
+        if (keyword == null || keyword.isBlank()) {
+            throw new InvalidJobException(
+                    "Search keyword cannot be blank"
+            );
+        }
+
+        return jobRepository.searchByKeyword(keyword.trim())
+                .stream()
+                .map(this::toResponse)
+                .collect(Collectors.toList());
+    }
+
     public JobResponse getJobById(Long jobId) {
 
         Job job = jobRepository.findById(jobId)
@@ -204,7 +218,6 @@ public class JobService {
 
         jobRepository.delete(job);
     }
-
 
     private void validateJobRequest(JobRequest request) {
 
