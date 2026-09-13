@@ -6,6 +6,7 @@ import com.placelyt.placelyt.dto.JobResponse;
 import com.placelyt.placelyt.entity.Company;
 import com.placelyt.placelyt.entity.EmploymentType;
 import com.placelyt.placelyt.entity.Job;
+import com.placelyt.placelyt.entity.JobSortField;
 import com.placelyt.placelyt.entity.JobStatus;
 import com.placelyt.placelyt.entity.WorkMode;
 import com.placelyt.placelyt.exception.InvalidJobException;
@@ -17,8 +18,10 @@ import com.placelyt.placelyt.repository.SkillRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 
 import java.time.LocalDate;
@@ -318,7 +321,8 @@ class JobServiceTest {
         when(
                 jobRepository.findAll(
                         org.mockito.ArgumentMatchers
-        .<Specification<Job>>any()
+                                .<Specification<Job>>any(),
+                        any(Sort.class)
                 )
         ).thenReturn(
                 List.of(remoteJob)
@@ -336,7 +340,159 @@ class JobServiceTest {
 
         verify(jobRepository).findAll(
                 org.mockito.ArgumentMatchers
-        .<Specification<Job>>any()
+                        .<Specification<Job>>any(),
+                any(Sort.class)
+        );
+    }
+
+    @Test
+    void shouldSortJobsByMinimumSalaryAscending() {
+
+        JobFilterRequest filter = new JobFilterRequest();
+
+        filter.setSortBy(JobSortField.MINIMUM_SALARY);
+        filter.setDirection(Sort.Direction.ASC);
+
+        when(
+                jobRepository.findAll(
+                        org.mockito.ArgumentMatchers
+                                .<Specification<Job>>any(),
+                        any(Sort.class)
+                )
+        ).thenReturn(List.of());
+
+        jobService.filterJobs(filter);
+
+        ArgumentCaptor<Sort> sortCaptor =
+                ArgumentCaptor.forClass(Sort.class);
+
+        verify(jobRepository).findAll(
+                org.mockito.ArgumentMatchers
+                        .<Specification<Job>>any(),
+                sortCaptor.capture()
+        );
+
+        Sort sort = sortCaptor.getValue();
+
+        Sort.Order order =
+                sort.getOrderFor("minimumSalary");
+
+        assertEquals(
+                Sort.Direction.ASC,
+                order.getDirection()
+        );
+    }
+
+    @Test
+    void shouldSortJobsByMinimumSalaryDescending() {
+
+        JobFilterRequest filter = new JobFilterRequest();
+
+        filter.setSortBy(JobSortField.MINIMUM_SALARY);
+        filter.setDirection(Sort.Direction.DESC);
+
+        when(
+                jobRepository.findAll(
+                        org.mockito.ArgumentMatchers
+                                .<Specification<Job>>any(),
+                        any(Sort.class)
+                )
+        ).thenReturn(List.of());
+
+        jobService.filterJobs(filter);
+
+        ArgumentCaptor<Sort> sortCaptor =
+                ArgumentCaptor.forClass(Sort.class);
+
+        verify(jobRepository).findAll(
+                org.mockito.ArgumentMatchers
+                        .<Specification<Job>>any(),
+                sortCaptor.capture()
+        );
+
+        Sort sort = sortCaptor.getValue();
+
+        Sort.Order order =
+                sort.getOrderFor("minimumSalary");
+
+        assertEquals(
+                Sort.Direction.DESC,
+                order.getDirection()
+        );
+    }
+
+    @Test
+    void shouldSortJobsByTitleAscending() {
+
+        JobFilterRequest filter = new JobFilterRequest();
+
+        filter.setSortBy(JobSortField.TITLE);
+        filter.setDirection(Sort.Direction.ASC);
+
+        when(
+                jobRepository.findAll(
+                        org.mockito.ArgumentMatchers
+                                .<Specification<Job>>any(),
+                        any(Sort.class)
+                )
+        ).thenReturn(List.of());
+
+        jobService.filterJobs(filter);
+
+        ArgumentCaptor<Sort> sortCaptor =
+                ArgumentCaptor.forClass(Sort.class);
+
+        verify(jobRepository).findAll(
+                org.mockito.ArgumentMatchers
+                        .<Specification<Job>>any(),
+                sortCaptor.capture()
+        );
+
+        Sort sort = sortCaptor.getValue();
+
+        Sort.Order order =
+                sort.getOrderFor("title");
+
+        assertEquals(
+                Sort.Direction.ASC,
+                order.getDirection()
+        );
+    }
+
+    @Test
+    void shouldDefaultToAscendingWhenDirectionIsNotProvided() {
+
+        JobFilterRequest filter = new JobFilterRequest();
+
+        filter.setSortBy(JobSortField.MINIMUM_CGPA);
+
+        when(
+                jobRepository.findAll(
+                        org.mockito.ArgumentMatchers
+                                .<Specification<Job>>any(),
+                        any(Sort.class)
+                )
+        ).thenReturn(List.of());
+
+        jobService.filterJobs(filter);
+
+        ArgumentCaptor<Sort> sortCaptor =
+                ArgumentCaptor.forClass(Sort.class);
+
+        verify(jobRepository).findAll(
+                org.mockito.ArgumentMatchers
+                        .<Specification<Job>>any(),
+                sortCaptor.capture()
+        );
+
+        Sort sort = sortCaptor.getValue();
+
+        Sort.Order order =
+                sort.getOrderFor("minimumCgpa");
+
+        assertEquals(
+                Sort.Direction.ASC,
+                order.getDirection()
         );
     }
 }

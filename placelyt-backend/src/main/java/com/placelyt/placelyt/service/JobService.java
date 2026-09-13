@@ -1,26 +1,28 @@
 package com.placelyt.placelyt.service;
 
+import com.placelyt.placelyt.dto.JobFilterRequest;
 import com.placelyt.placelyt.dto.JobRequest;
 import com.placelyt.placelyt.dto.JobResponse;
 import com.placelyt.placelyt.entity.Company;
-import com.placelyt.placelyt.entity.JobStatus;
 import com.placelyt.placelyt.entity.Job;
 import com.placelyt.placelyt.entity.JobEligibleBranch;
 import com.placelyt.placelyt.entity.JobRequiredSkill;
+import com.placelyt.placelyt.entity.JobSortField;
+import com.placelyt.placelyt.entity.JobStatus;
 import com.placelyt.placelyt.entity.Skill;
 import com.placelyt.placelyt.exception.CompanyNotFoundException;
-import com.placelyt.placelyt.exception.JobNotFoundException;
 import com.placelyt.placelyt.exception.InvalidJobException;
+import com.placelyt.placelyt.exception.JobNotFoundException;
 import com.placelyt.placelyt.exception.SkillNotFoundException;
 import com.placelyt.placelyt.repository.CompanyRepository;
 import com.placelyt.placelyt.repository.JobEligibleBranchRepository;
 import com.placelyt.placelyt.repository.JobRepository;
 import com.placelyt.placelyt.repository.JobRequiredSkillRepository;
 import com.placelyt.placelyt.repository.SkillRepository;
+import com.placelyt.placelyt.specification.JobSpecification;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import com.placelyt.placelyt.dto.JobFilterRequest;
-import com.placelyt.placelyt.specification.JobSpecification;
 
 import java.time.LocalDate;
 import java.util.HashSet;
@@ -96,13 +98,50 @@ public class JobService {
 
     public List<JobResponse> filterJobs(JobFilterRequest filter) {
 
-    return jobRepository.findAll(
-                    JobSpecification.withFilters(filter)
-            )
-            .stream()
-            .map(this::toResponse)
-            .collect(Collectors.toList());
-}
+        Sort sort = Sort.unsorted();
+
+        if (filter.getSortBy() != null) {
+
+            Sort.Direction direction =
+                    filter.getDirection() != null
+                            ? filter.getDirection()
+                            : Sort.Direction.ASC;
+
+            sort = Sort.by(
+                    direction,
+                    getSortProperty(filter.getSortBy())
+            );
+        }
+
+        return jobRepository.findAll(
+                        JobSpecification.withFilters(filter),
+                        sort
+                )
+                .stream()
+                .map(this::toResponse)
+                .collect(Collectors.toList());
+    }
+
+    private String getSortProperty(JobSortField sortField) {
+
+        return switch (sortField) {
+
+            case MINIMUM_SALARY ->
+                    "minimumSalary";
+
+            case MAXIMUM_SALARY ->
+                    "maximumSalary";
+
+            case MINIMUM_CGPA ->
+                    "minimumCgpa";
+
+            case APPLICATION_DEADLINE ->
+                    "applicationDeadline";
+
+            case TITLE ->
+                    "title";
+        };
+    }
 
     public JobResponse getJobById(Long jobId) {
 
@@ -235,43 +274,59 @@ public class JobService {
 
         if (request.getMinimumSalary() != null
                 && request.getMaximumSalary() != null
-                && request.getMinimumSalary() > request.getMaximumSalary()) {
+                && request.getMinimumSalary()
+                > request.getMaximumSalary()) {
+
             throw new InvalidJobException(
                     "Minimum salary cannot be greater than maximum salary");
         }
 
         if (request.getStatus() == JobStatus.OPEN
                 && request.getApplicationDeadline() == null) {
+
             throw new InvalidJobException(
                     "An open job must have an application deadline");
         }
 
         if (request.getStatus() == JobStatus.OPEN
                 && request.getApplicationDeadline() != null
-                && request.getApplicationDeadline().isBefore(LocalDate.now())) {
+                && request.getApplicationDeadline()
+                .isBefore(LocalDate.now())) {
+
             throw new InvalidJobException(
                     "An open job cannot have a past application deadline");
         }
 
-        validateUniqueValues(request.getEligibleBranches(), "eligible branches");
-        validateUniqueValues(request.getRequiredSkillIds(), "required skills");
+        validateUniqueValues(
+                request.getEligibleBranches(),
+                "eligible branches"
+        );
+
+        validateUniqueValues(
+                request.getRequiredSkillIds(),
+                "required skills"
+        );
 
         if (request.getEligibleBranches() != null
                 && request.getEligibleBranches().stream().anyMatch(
-                        branch -> branch == null || branch.isBlank())) {
+                branch -> branch == null || branch.isBlank())) {
+
             throw new InvalidJobException(
                     "Eligible branches cannot contain blank values");
         }
 
         if (request.getRequiredSkillIds() != null
                 && request.getRequiredSkillIds().stream().anyMatch(
-                        skillId -> skillId == null || skillId <= 0)) {
+                skillId -> skillId == null || skillId <= 0)) {
+
             throw new InvalidJobException(
                     "Required skill IDs must be positive");
         }
     }
 
-    private <T> void validateUniqueValues(List<T> values, String fieldName) {
+    private <T> void validateUniqueValues(
+            List<T> values,
+            String fieldName) {
 
         if (values == null) {
             return;
@@ -280,6 +335,7 @@ public class JobService {
         Set<T> uniqueValues = new HashSet<>(values);
 
         if (uniqueValues.size() != values.size()) {
+
             throw new InvalidJobException(
                     "Duplicate values are not allowed in " + fieldName);
         }

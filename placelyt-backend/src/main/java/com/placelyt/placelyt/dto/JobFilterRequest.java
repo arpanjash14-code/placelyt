@@ -1,8 +1,10 @@
 package com.placelyt.placelyt.dto;
 
 import com.placelyt.placelyt.entity.EmploymentType;
+import com.placelyt.placelyt.entity.JobSortField;
 import com.placelyt.placelyt.entity.JobStatus;
 import com.placelyt.placelyt.entity.WorkMode;
+import org.springframework.data.domain.Sort;
 
 public class JobFilterRequest {
 
@@ -17,6 +19,10 @@ public class JobFilterRequest {
     private Integer graduationYear;
 
     private JobStatus status;
+
+    private JobSortField sortBy;
+
+    private Sort.Direction direction;
 
     public EmploymentType getEmploymentType() {
         return employmentType;
@@ -64,5 +70,21 @@ public class JobFilterRequest {
 
     public void setStatus(JobStatus status) {
         this.status = status;
+    }
+
+    public JobSortField getSortBy() {
+        return sortBy;
+    }
+
+    public void setSortBy(JobSortField sortBy) {
+        this.sortBy = sortBy;
+    }
+
+    public Sort.Direction getDirection() {
+        return direction;
+    }
+
+    public void setDirection(Sort.Direction direction) {
+        this.direction = direction;
     }
 }
