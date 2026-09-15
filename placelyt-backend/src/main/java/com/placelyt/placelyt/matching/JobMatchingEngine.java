@@ -8,6 +8,7 @@ import com.placelyt.placelyt.entity.StudentProfile;
 import com.placelyt.placelyt.entity.UserSkill;
 import org.springframework.stereotype.Component;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Component
@@ -120,19 +121,6 @@ public class JobMatchingEngine {
      * ---------------------------------------------------------
      * BRANCH NORMALIZATION
      * ---------------------------------------------------------
-     *
-     * This allows common academic branch names and
-     * abbreviations to match each other.
-     *
-     * Examples:
-     *
-     * CSE
-     * Computer Science
-     * Computer Science and Engineering
-     *
-     * all normalize to:
-     *
-     * cse
      */
 
     private String normalizeBranch(String branch) {
@@ -207,12 +195,13 @@ public class JobMatchingEngine {
      *
      * Total possible score = 100
      *
-     * Skills          = 40
-     * Preferred role  = 20
-     * Work mode       = 10
-     * Location        = 10
-     * Employment type = 10
-     * Salary          = 10
+     * Skills           = 35
+     * Experience       = 15
+     * Preferred role   = 20
+     * Work mode        = 10
+     * Location         = 10
+     * Employment type   = 5
+     * Salary            = 5
      */
 
     public double calculateMatchScore(
@@ -228,6 +217,11 @@ public class JobMatchingEngine {
         double score = 0.0;
 
         score += calculateSkillScore(
+                userSkills,
+                job
+        );
+
+        score += calculateExperienceScore(
                 userSkills,
                 job
         );
@@ -262,7 +256,7 @@ public class JobMatchingEngine {
 
     /*
      * ---------------------------------------------------------
-     * SKILL SCORE - 40 POINTS
+     * SKILL SCORE - 35 POINTS
      * ---------------------------------------------------------
      */
 
@@ -322,7 +316,127 @@ public class JobMatchingEngine {
         }
 
         return ((double) matchedSkills
-                / totalRequiredSkills) * 40.0;
+                / totalRequiredSkills) * 35.0;
+    }
+
+    /*
+     * ---------------------------------------------------------
+     * EXPERIENCE SCORE - 15 POINTS
+     * ---------------------------------------------------------
+     *
+     * Experience is calculated only from the student's
+     * skills that are required by the job.
+     *
+     * If the job has no experience requirement,
+     * no experience points are awarded.
+     *
+     * If the student has no relevant experience,
+     * the score is 0.
+     *
+     * If the student's relevant experience is equal to
+     * or greater than the required experience,
+     * the student receives all 15 points.
+     *
+     * Otherwise, the score is proportional to the amount
+     * of relevant experience the student has.
+     */
+
+    private double calculateExperienceScore(
+            List<UserSkill> userSkills,
+            Job job) {
+
+        Double requiredExperience =
+                job.getMinimumYearsOfExperience();
+
+        if (requiredExperience == null
+                || requiredExperience <= 0.0) {
+            return 0.0;
+        }
+
+        if (userSkills == null
+                || userSkills.isEmpty()) {
+            return 0.0;
+        }
+
+        if (job.getRequiredSkills() == null
+                || job.getRequiredSkills().isEmpty()) {
+            return 0.0;
+        }
+
+        List<Double> relevantExperience =
+                new ArrayList<>();
+
+        for (JobRequiredSkill requiredSkill
+                : job.getRequiredSkills()) {
+
+            if (requiredSkill == null
+                    || requiredSkill.getSkill() == null
+                    || requiredSkill.getSkill().getName() == null) {
+                continue;
+            }
+
+            String requiredSkillName =
+                    requiredSkill.getSkill()
+                            .getName()
+                            .trim();
+
+            for (UserSkill userSkill : userSkills) {
+
+                if (userSkill == null
+                        || userSkill.getSkill() == null
+                        || userSkill.getSkill().getName() == null) {
+                    continue;
+                }
+
+                String userSkillName =
+                        userSkill.getSkill()
+                                .getName()
+                                .trim();
+
+                if (requiredSkillName.equalsIgnoreCase(
+                        userSkillName)) {
+
+                    Double yearsOfExperience =
+                            userSkill.getYearsOfExperience();
+
+                    if (yearsOfExperience != null
+                            && yearsOfExperience >= 0.0) {
+
+                        relevantExperience.add(
+                                yearsOfExperience
+                        );
+                    }
+
+                    break;
+                }
+            }
+        }
+
+        if (relevantExperience.isEmpty()) {
+            return 0.0;
+        }
+
+        double totalExperience = 0.0;
+
+        for (Double experience
+                : relevantExperience) {
+
+            totalExperience += experience;
+        }
+
+        double averageExperience =
+                totalExperience
+                        / relevantExperience.size();
+
+        double experienceRatio =
+                averageExperience
+                        / requiredExperience;
+
+        if (experienceRatio >= 1.0) {
+            return 15.0;
+        }
+
+        return experienceRatio * 15.0;
     }
 
     /*
@@ -436,7 +550,7 @@ public class JobMatchingEngine {
 
     /*
      * ---------------------------------------------------------
-     * EMPLOYMENT TYPE SCORE - 10 POINTS
+     * EMPLOYMENT TYPE SCORE - 5 POINTS
      * ---------------------------------------------------------
      */
 
@@ -463,7 +577,7 @@ public class JobMatchingEngine {
         if (preferredEmploymentType.equalsIgnoreCase(
                 jobEmploymentType)) {
 
-            return 10.0;
+            return 5.0;
         }
 
         return 0.0;
@@ -490,7 +604,7 @@ public class JobMatchingEngine {
 
     /*
      * ---------------------------------------------------------
-     * SALARY SCORE - 10 POINTS
+     * SALARY SCORE - 5 POINTS
      * ---------------------------------------------------------
      */
 
@@ -549,7 +663,7 @@ public class JobMatchingEngine {
                         && jobMin <= preferredMax;
 
         if (overlaps) {
-            return 10.0;
+            return 5.0;
         }
 
         return 0.0;

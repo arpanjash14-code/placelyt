@@ -221,7 +221,7 @@ class JobMatchingEngineTest {
     }
 
     @Test
-    void shouldGiveFullScoreWhenAllPreferencesAndSkillsMatch() {
+    void shouldGiveFullScoreWhenAllPreferencesSkillsAndExperienceMatch() {
 
         StudentProfile student = createStudent(
                 "B.Tech",
@@ -243,8 +243,8 @@ class JobMatchingEngineTest {
         Job job = createScoringJob();
 
         List<UserSkill> userSkills = List.of(
-                createUserSkill("Java"),
-                createUserSkill("Spring Boot")
+                createUserSkill("Java", 1.0),
+                createUserSkill("Spring Boot", 1.0)
         );
 
         double score = engine.calculateMatchScore(
@@ -258,7 +258,7 @@ class JobMatchingEngineTest {
     }
 
     @Test
-    void shouldGiveFortySkillPointsWhenAllSkillsMatch() {
+    void shouldGiveThirtyFiveSkillPointsWhenAllSkillsMatch() {
 
         StudentProfile student = createStudent(
                 "B.Tech",
@@ -286,11 +286,11 @@ class JobMatchingEngineTest {
                 job
         );
 
-        assertEquals(40.0, score);
+        assertEquals(35.0, score);
     }
 
     @Test
-    void shouldGiveTwentySkillPointsWhenHalfOfSkillsMatch() {
+    void shouldGiveSeventeenPointFiveSkillPointsWhenHalfOfSkillsMatch() {
 
         StudentProfile student = createStudent(
                 "B.Tech",
@@ -317,7 +317,7 @@ class JobMatchingEngineTest {
                 job
         );
 
-        assertEquals(20.0, score);
+        assertEquals(17.5, score);
     }
 
     @Test
@@ -400,7 +400,7 @@ class JobMatchingEngineTest {
     }
 
     @Test
-    void shouldGiveEmploymentTypePointsWhenPreferenceMatches() {
+    void shouldGiveFiveEmploymentTypePointsWhenPreferenceMatches() {
 
         StudentProfile student = new StudentProfile();
 
@@ -423,11 +423,11 @@ class JobMatchingEngineTest {
                 job
         );
 
-        assertEquals(10.0, score);
+        assertEquals(5.0, score);
     }
 
     @Test
-    void shouldGiveSalaryPointsWhenSalaryRangesOverlap() {
+    void shouldGiveFiveSalaryPointsWhenSalaryRangesOverlap() {
 
         StudentProfile student = new StudentProfile();
 
@@ -458,8 +458,265 @@ class JobMatchingEngineTest {
                 job
         );
 
-        assertEquals(10.0, score);
+        assertEquals(5.0, score);
     }
+
+    /*
+     * ---------------------------------------------------------
+     * EXPERIENCE MATCHING TESTS
+     * ---------------------------------------------------------
+     */
+
+    @Test
+    void shouldGiveFullExperiencePointsWhenExperienceRequirementIsMet() {
+
+        Job job = new Job();
+
+        job.setMinimumYearsOfExperience(1.0);
+
+        addRequiredSkill(
+                job,
+                "Java"
+        );
+
+        List<UserSkill> userSkills = List.of(
+                createUserSkill(
+                        "Java",
+                        1.0
+                )
+        );
+
+        double score = engine.calculateMatchScore(
+                new StudentProfile(),
+                new Preference(),
+                userSkills,
+                job
+        );
+
+        assertEquals(50.0, score);
+    }
+
+    @Test
+    void shouldGiveFullExperiencePointsWhenStudentExceedsRequirement() {
+
+        Job job = new Job();
+
+        job.setMinimumYearsOfExperience(1.0);
+
+        addRequiredSkill(
+                job,
+                "Java"
+        );
+
+        List<UserSkill> userSkills = List.of(
+                createUserSkill(
+                        "Java",
+                        2.0
+                )
+        );
+
+        double score = engine.calculateMatchScore(
+                new StudentProfile(),
+                new Preference(),
+                userSkills,
+                job
+        );
+
+        assertEquals(50.0, score);
+    }
+
+    @Test
+    void shouldGiveProportionalExperiencePointsWhenExperienceIsBelowRequirement() {
+
+        Job job = new Job();
+
+        job.setMinimumYearsOfExperience(2.0);
+
+        addRequiredSkill(
+                job,
+                "Java"
+        );
+
+        List<UserSkill> userSkills = List.of(
+                createUserSkill(
+                        "Java",
+                        1.0
+                )
+        );
+
+        double score = engine.calculateMatchScore(
+                new StudentProfile(),
+                new Preference(),
+                userSkills,
+                job
+        );
+
+        assertEquals(42.5, score);
+    }
+
+    @Test
+    void shouldGiveZeroExperiencePointsWhenStudentHasNoRelevantExperience() {
+
+        Job job = new Job();
+
+        job.setMinimumYearsOfExperience(2.0);
+
+        addRequiredSkill(
+                job,
+                "Java"
+        );
+
+        List<UserSkill> userSkills = List.of(
+                createUserSkill(
+                        "Python",
+                        5.0
+                )
+        );
+
+        double score = engine.calculateMatchScore(
+                new StudentProfile(),
+                new Preference(),
+                userSkills,
+                job
+        );
+
+        assertEquals(0.0, score);
+    }
+
+    @Test
+    void shouldIgnoreExperienceFromUnrelatedSkills() {
+
+        Job job = new Job();
+
+        job.setMinimumYearsOfExperience(2.0);
+
+        addRequiredSkill(
+                job,
+                "Java"
+        );
+
+        List<UserSkill> userSkills = List.of(
+                createUserSkill(
+                        "Java",
+                        1.0
+                ),
+                createUserSkill(
+                        "Python",
+                        5.0
+                )
+        );
+
+        double score = engine.calculateMatchScore(
+                new StudentProfile(),
+                new Preference(),
+                userSkills,
+                job
+        );
+
+        assertEquals(42.5, score);
+    }
+
+    @Test
+    void shouldUseAverageExperienceAcrossMatchedRequiredSkills() {
+
+        Job job = new Job();
+
+        job.setMinimumYearsOfExperience(2.0);
+
+        addRequiredSkill(
+                job,
+                "Java"
+        );
+
+        addRequiredSkill(
+                job,
+                "Spring Boot"
+        );
+
+        List<UserSkill> userSkills = List.of(
+                createUserSkill(
+                        "Java",
+                        2.0
+                ),
+                createUserSkill(
+                        "Spring Boot",
+                        1.0
+                )
+        );
+
+        double score = engine.calculateMatchScore(
+                new StudentProfile(),
+                new Preference(),
+                userSkills,
+                job
+        );
+
+        assertEquals(46.25, score);
+    }
+
+    @Test
+    void shouldGiveZeroExperiencePointsWhenJobHasNoExperienceRequirement() {
+
+        Job job = new Job();
+
+        job.setMinimumYearsOfExperience(null);
+
+        addRequiredSkill(
+                job,
+                "Java"
+        );
+
+        List<UserSkill> userSkills = List.of(
+                createUserSkill(
+                        "Java",
+                        5.0
+                )
+        );
+
+        double score = engine.calculateMatchScore(
+                new StudentProfile(),
+                new Preference(),
+                userSkills,
+                job
+        );
+
+        assertEquals(35.0, score);
+    }
+
+    @Test
+    void shouldGiveZeroExperiencePointsWhenJobRequiresZeroExperience() {
+
+        Job job = new Job();
+
+        job.setMinimumYearsOfExperience(0.0);
+
+        addRequiredSkill(
+                job,
+                "Java"
+        );
+
+        List<UserSkill> userSkills = List.of(
+                createUserSkill(
+                        "Java",
+                        5.0
+                )
+        );
+
+        double score = engine.calculateMatchScore(
+                new StudentProfile(),
+                new Preference(),
+                userSkills,
+                job
+        );
+
+        assertEquals(35.0, score);
+    }
+
+    /*
+     * ---------------------------------------------------------
+     * TEST DATA HELPERS
+     * ---------------------------------------------------------
+     */
 
     private StudentProfile createStudent(
             String degree,
@@ -594,6 +851,10 @@ class JobMatchingEngineTest {
                 90000.0
         );
 
+        job.setMinimumYearsOfExperience(
+                1.0
+        );
+
         addRequiredSkill(
                 job,
                 "Java"
@@ -635,6 +896,16 @@ class JobMatchingEngineTest {
     private UserSkill createUserSkill(
             String skillName) {
 
+        return createUserSkill(
+                skillName,
+                null
+        );
+    }
+
+    private UserSkill createUserSkill(
+            String skillName,
+            Double yearsOfExperience) {
+
         Skill skill = new Skill();
 
         skill.setName(
@@ -646,6 +917,10 @@ class JobMatchingEngineTest {
 
         userSkill.setSkill(
                 skill
+        );
+
+        userSkill.setYearsOfExperience(
+                yearsOfExperience
         );
 
         return userSkill;

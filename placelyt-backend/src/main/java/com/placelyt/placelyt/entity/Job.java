@@ -49,6 +49,8 @@ public class Job {
 
     private Double minimumCgpa;
 
+    private Double minimumYearsOfExperience;
+
     private String requiredDegree;
 
     private Integer eligibleGraduationYear;
@@ -205,4 +207,14 @@ public class Job {
             List<JobRequiredSkill> requiredSkills) {
         this.requiredSkills = requiredSkills;
     }
+
+    public Double getMinimumYearsOfExperience() {
+    return minimumYearsOfExperience;
+}
+
+public void setMinimumYearsOfExperience(
+        Double minimumYearsOfExperience) {
+    this.minimumYearsOfExperience =
+            minimumYearsOfExperience;
+}
 }
