@@ -2,6 +2,8 @@ package com.placelyt.placelyt.ai;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Profile;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -17,6 +19,9 @@ import java.util.Map;
 @Component
 @Profile("openrouter")
 public class OpenRouterAIProvider implements AIProvider {
+
+    private static final Logger logger =
+            LoggerFactory.getLogger(OpenRouterAIProvider.class);
 
     private final AIProperties aiProperties;
     private final RestTemplate restTemplate;
@@ -126,12 +131,23 @@ public class OpenRouterAIProvider implements AIProvider {
                         headers
                 );
 
+        logger.info(
+                "Sending AI request to provider='{}', model='{}'",
+                aiProperties.getProvider(),
+                aiProperties.getModel()
+        );
+
         String response =
                 restTemplate.postForObject(
                         url,
                         request,
                         String.class
                 );
+
+        logger.info(
+                "AI provider='{}' returned an HTTP response",
+                aiProperties.getProvider()
+        );
 
         if (response == null ||
                 response.isBlank()) {

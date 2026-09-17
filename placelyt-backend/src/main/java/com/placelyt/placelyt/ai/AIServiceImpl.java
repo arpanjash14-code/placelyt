@@ -3,6 +3,8 @@ package com.placelyt.placelyt.ai;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.placelyt.placelyt.dto.CareerAIResponse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -10,6 +12,9 @@ import java.util.List;
 
 @Service
 public class AIServiceImpl implements AIService {
+
+    private static final Logger logger =
+            LoggerFactory.getLogger(AIServiceImpl.class);
 
     private final AIProvider aiProvider;
     private final ObjectMapper objectMapper;
@@ -26,11 +31,11 @@ public class AIServiceImpl implements AIService {
             String matchedSkills,
             String missingSkills) {
 
-     validateInput(
-            careerPathName,
-            readinessScore,
-            matchedSkills,
-            missingSkills
+        validateInput(
+                careerPathName,
+                readinessScore,
+                matchedSkills,
+                missingSkills
         );
 
         String systemPrompt = """
@@ -93,25 +98,59 @@ public class AIServiceImpl implements AIService {
                 missingSkills
         );
 
-       try {
+        long startTime =
+                System.currentTimeMillis();
 
-    String aiResponse =
-            aiProvider.generateResponse(
-                    systemPrompt,
-                    userPrompt
+        logger.info(
+                "Starting AI career-path explanation for path='{}', readinessScore={}",
+                careerPathName,
+                readinessScore
+        );
+
+        try {
+
+            String aiResponse =
+                    aiProvider.generateResponse(
+                            systemPrompt,
+                            userPrompt
+                    );
+
+            CareerAIResponse response =
+                    parseAndValidateResponse(aiResponse);
+
+            long duration =
+                    System.currentTimeMillis() - startTime;
+
+            logger.info(
+                    "AI career-path explanation completed successfully " +
+                    "for path='{}' in {} ms",
+                    careerPathName,
+                    duration
             );
 
-    return parseAndValidateResponse(aiResponse);
+            return response;
 
-} catch (Exception exception) {
+        } catch (Exception exception) {
 
-    return createFallbackResponse(
-            careerPathName,
-            readinessScore,
-            matchedSkills,
-            missingSkills
-    );
-}
+            long duration =
+                    System.currentTimeMillis() - startTime;
+
+            logger.warn(
+                    "AI career-path explanation failed for path='{}' " +
+                    "after {} ms. Using deterministic fallback. " +
+                    "Reason={}",
+                    careerPathName,
+                    duration,
+                    exception.getMessage()
+            );
+
+            return createFallbackResponse(
+                    careerPathName,
+                    readinessScore,
+                    matchedSkills,
+                    missingSkills
+            );
+        }
     }
 
     private CareerAIResponse parseAndValidateResponse(
@@ -252,157 +291,157 @@ public class AIServiceImpl implements AIService {
     }
 
     private CareerAIResponse createFallbackResponse(
-        String careerPathName,
-        double readinessScore,
-        String matchedSkills,
-        String missingSkills) {
+            String careerPathName,
+            double readinessScore,
+            String matchedSkills,
+            String missingSkills) {
 
-    String summary =
-            "You currently have a " +
-                    String.format(
-                            "%.1f",
-                            readinessScore
-                    ) +
-                    "% readiness for " +
-                    careerPathName +
-                    ".";
+        String summary =
+                "You currently have a " +
+                        String.format(
+                                "%.1f",
+                                readinessScore
+                        ) +
+                        "% readiness for " +
+                        careerPathName +
+                        ".";
 
-    String whyRelevant;
+        String whyRelevant;
 
-    if (matchedSkills == null ||
-            matchedSkills.isBlank()) {
+        if (matchedSkills == null ||
+                matchedSkills.isBlank()) {
 
-        whyRelevant =
-                "No required skills have been matched yet. " +
-                "Building the core skills for this career path " +
-                "can improve your readiness.";
+            whyRelevant =
+                    "No required skills have been matched yet. " +
+                    "Building the core skills for this career path " +
+                    "can improve your readiness.";
 
-    } else {
+        } else {
 
-        whyRelevant =
-                "Your matched skills include: " +
-                matchedSkills +
-                ". These provide a starting foundation for " +
-                careerPathName +
-                ".";
-    }
+            whyRelevant =
+                    "Your matched skills include: " +
+                            matchedSkills +
+                            ". These provide a starting foundation for " +
+                            careerPathName +
+                            ".";
+        }
 
-    List<String> skillGaps =
-            parseCommaSeparatedValues(
-                    missingSkills
-            );
+        List<String> skillGaps =
+                parseCommaSeparatedValues(
+                        missingSkills
+                );
 
-    List<String> nextSteps =
-            new ArrayList<>();
+        List<String> nextSteps =
+                new ArrayList<>();
 
-    if (!skillGaps.isEmpty()) {
+        if (!skillGaps.isEmpty()) {
 
-        for (String skillGap : skillGaps) {
+            for (String skillGap : skillGaps) {
+
+                nextSteps.add(
+                        "Build practical knowledge in " +
+                                skillGap +
+                                "."
+                );
+            }
+
+        } else {
 
             nextSteps.add(
-                    "Build practical knowledge in " +
-                            skillGap +
-                            "."
+                    "Continue strengthening your existing skills " +
+                            "through practical projects."
             );
         }
 
-    } else {
-
-        nextSteps.add(
-                "Continue strengthening your existing skills " +
-                "through practical projects."
+        return new CareerAIResponse(
+                summary,
+                whyRelevant,
+                skillGaps,
+                nextSteps
         );
     }
 
-    return new CareerAIResponse(
-            summary,
-            whyRelevant,
-            skillGaps,
-            nextSteps
-    );
-}
+    private List<String> parseCommaSeparatedValues(
+            String values) {
 
-private List<String> parseCommaSeparatedValues(
-        String values) {
+        List<String> result =
+                new ArrayList<>();
 
-    List<String> result =
-            new ArrayList<>();
+        if (values == null ||
+                values.isBlank()) {
 
-    if (values == null ||
-            values.isBlank()) {
+            return result;
+        }
+
+        for (String value :
+                values.split(",")) {
+
+            String trimmed =
+                    value.trim();
+
+            if (!trimmed.isBlank()) {
+                result.add(trimmed);
+            }
+        }
 
         return result;
     }
 
-    for (String value :
-            values.split(",")) {
+    private void validateInput(
+            String careerPathName,
+            double readinessScore,
+            String matchedSkills,
+            String missingSkills) {
 
-        String trimmed =
-                value.trim();
+        if (careerPathName == null ||
+                careerPathName.isBlank()) {
 
-        if (!trimmed.isBlank()) {
-            result.add(trimmed);
+            throw new IllegalArgumentException(
+                    "Career path name is required"
+            );
+        }
+
+        if (Double.isNaN(readinessScore) ||
+                Double.isInfinite(readinessScore)) {
+
+            throw new IllegalArgumentException(
+                    "Readiness score must be a valid number"
+            );
+        }
+
+        if (readinessScore < 0.0 ||
+                readinessScore > 100.0) {
+
+            throw new IllegalArgumentException(
+                    "Readiness score must be between 0 and 100"
+            );
+        }
+
+        validateSkillInput(
+                matchedSkills,
+                "Matched skills"
+        );
+
+        validateSkillInput(
+                missingSkills,
+                "Missing skills"
+        );
+    }
+
+    private void validateSkillInput(
+            String skills,
+            String fieldName) {
+
+        if (skills == null) {
+            return;
+        }
+
+        if (skills.length() > 2000) {
+
+            throw new IllegalArgumentException(
+                    fieldName +
+                            " input is too long"
+            );
         }
     }
-
-    return result;
-}
-
-private void validateInput(
-        String careerPathName,
-        double readinessScore,
-        String matchedSkills,
-        String missingSkills) {
-
-    if (careerPathName == null ||
-            careerPathName.isBlank()) {
-
-        throw new IllegalArgumentException(
-                "Career path name is required"
-        );
-    }
-
-    if (Double.isNaN(readinessScore) ||
-            Double.isInfinite(readinessScore)) {
-
-        throw new IllegalArgumentException(
-                "Readiness score must be a valid number"
-        );
-    }
-
-    if (readinessScore < 0.0 ||
-            readinessScore > 100.0) {
-
-        throw new IllegalArgumentException(
-                "Readiness score must be between 0 and 100"
-        );
-    }
-
-    validateSkillInput(
-            matchedSkills,
-            "Matched skills"
-    );
-
-    validateSkillInput(
-            missingSkills,
-            "Missing skills"
-    );
-}
-
-private void validateSkillInput(
-        String skills,
-        String fieldName) {
-
-    if (skills == null) {
-        return;
-    }
-
-    if (skills.length() > 2000) {
-
-        throw new IllegalArgumentException(
-                fieldName +
-                        " input is too long"
-        );
-    }
-}
 }
