@@ -29,6 +29,10 @@ class SkillIntelligenceServiceImplTest {
                       "relatedSkills": [
                         "Spring Boot",
                         "Spring Framework"
+                      ],
+                      "transferableSkills": [
+                        "Object-Oriented Programming",
+                        "Backend Development"
                       ]
                     },
                     {
@@ -36,6 +40,10 @@ class SkillIntelligenceServiceImplTest {
                       "relatedSkills": [
                         "Relational Databases",
                         "Database Development"
+                      ],
+                      "transferableSkills": [
+                        "Data Analysis",
+                        "Data Modeling"
                       ]
                     }
                   ]
@@ -79,10 +87,38 @@ class SkillIntelligenceServiceImplTest {
                         .getRelatedSkills()
                         .contains("Spring Framework")
         );
+
+        assertTrue(
+                response.getSkills()
+                        .get(0)
+                        .getTransferableSkills()
+                        .contains("Object-Oriented Programming")
+        );
+
+        assertTrue(
+                response.getSkills()
+                        .get(0)
+                        .getTransferableSkills()
+                        .contains("Backend Development")
+        );
+
+        assertTrue(
+                response.getSkills()
+                        .get(1)
+                        .getTransferableSkills()
+                        .contains("Data Analysis")
+        );
+
+        assertTrue(
+                response.getSkills()
+                        .get(1)
+                        .getTransferableSkills()
+                        .contains("Data Modeling")
+        );
     }
 
     @Test
-    void shouldPassSkillsToAIProvider() {
+    void shouldPassSkillsAndTransferableSkillInstructionToAIProvider() {
 
         AIProvider aiProvider =
                 mock(AIProvider.class);
@@ -95,7 +131,8 @@ class SkillIntelligenceServiceImplTest {
                   "skills": [
                     {
                       "skill": "Java",
-                      "relatedSkills": []
+                      "relatedSkills": [],
+                      "transferableSkills": []
                     }
                   ]
                 }
@@ -111,13 +148,13 @@ class SkillIntelligenceServiceImplTest {
         );
 
         verify(aiProvider).generateResponse(
-                contains("related skills"),
+                contains("transferable skills"),
                 contains("Java")
         );
     }
 
     @Test
-    void shouldHandleEmptyRelatedSkills() {
+    void shouldHandleEmptyRelatedAndTransferableSkills() {
 
         AIProvider aiProvider =
                 mock(AIProvider.class);
@@ -130,7 +167,8 @@ class SkillIntelligenceServiceImplTest {
                   "skills": [
                     {
                       "skill": "Java",
-                      "relatedSkills": []
+                      "relatedSkills": [],
+                      "transferableSkills": []
                     }
                   ]
                 }
@@ -150,6 +188,13 @@ class SkillIntelligenceServiceImplTest {
                 response.getSkills()
                         .get(0)
                         .getRelatedSkills()
+                        .isEmpty()
+        );
+
+        assertTrue(
+                response.getSkills()
+                        .get(0)
+                        .getTransferableSkills()
                         .isEmpty()
         );
     }
@@ -198,11 +243,32 @@ class SkillIntelligenceServiceImplTest {
                         .isEmpty()
         );
 
+        assertTrue(
+                response.getSkills()
+                        .get(0)
+                        .getTransferableSkills()
+                        .isEmpty()
+        );
+
         assertEquals(
                 "SQL",
                 response.getSkills()
                         .get(1)
                         .getSkill()
+        );
+
+        assertTrue(
+                response.getSkills()
+                        .get(1)
+                        .getRelatedSkills()
+                        .isEmpty()
+        );
+
+        assertTrue(
+                response.getSkills()
+                        .get(1)
+                        .getTransferableSkills()
+                        .isEmpty()
         );
     }
 
@@ -313,6 +379,9 @@ class SkillIntelligenceServiceImplTest {
                       "skill": "Java",
                       "relatedSkills": [
                         "Spring Boot"
+                      ],
+                      "transferableSkills": [
+                        "Backend Development"
                       ]
                     }
                   ]
@@ -354,6 +423,13 @@ class SkillIntelligenceServiceImplTest {
                 response.getSkills()
                         .get(1)
                         .getRelatedSkills()
+                        .isEmpty()
+        );
+
+        assertTrue(
+                response.getSkills()
+                        .get(1)
+                        .getTransferableSkills()
                         .isEmpty()
         );
     }

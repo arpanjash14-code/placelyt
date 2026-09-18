@@ -12,6 +12,7 @@ import com.placelyt.placelyt.repository.UserSkillRepository;
 import com.placelyt.placelyt.service.SkillIntelligenceService;
 import org.junit.jupiter.api.Test;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -164,6 +165,10 @@ class CareerAIControllerTest {
                                                 List.of(
                                                         "Spring Boot",
                                                         "Spring Framework"
+                                                ),
+                                                List.of(
+                                                        "Object-Oriented Programming",
+                                                        "Backend Development"
                                                 )
                                         )
                         )
@@ -217,6 +222,30 @@ class CareerAIControllerTest {
                         .get(0)
                         .getRelatedSkills()
                         .contains("Spring Boot")
+        );
+
+        assertTrue(
+                response.getBody()
+                        .getSkills()
+                        .get(0)
+                        .getRelatedSkills()
+                        .contains("Spring Framework")
+        );
+
+        assertTrue(
+                response.getBody()
+                        .getSkills()
+                        .get(0)
+                        .getTransferableSkills()
+                        .contains("Object-Oriented Programming")
+        );
+
+        assertTrue(
+                response.getBody()
+                        .getSkills()
+                        .get(0)
+                        .getTransferableSkills()
+                        .contains("Backend Development")
         );
 
         verify(
@@ -275,6 +304,9 @@ class CareerAIControllerTest {
                                                 "Java",
                                                 List.of(
                                                         "Spring Boot"
+                                                ),
+                                                List.of(
+                                                        "Backend Development"
                                                 )
                                         )
                         )
@@ -303,78 +335,79 @@ class CareerAIControllerTest {
     }
 
     @Test
-void shouldIgnoreInvalidUserSkillEntries() {
+    void shouldIgnoreInvalidUserSkillEntries() {
 
-    CareerPathRepository careerPathRepository =
-            mock(CareerPathRepository.class);
+        CareerPathRepository careerPathRepository =
+                mock(CareerPathRepository.class);
 
-    UserSkillRepository userSkillRepository =
-            mock(UserSkillRepository.class);
+        UserSkillRepository userSkillRepository =
+                mock(UserSkillRepository.class);
 
-    CareerPathEngine careerPathEngine =
-            mock(CareerPathEngine.class);
+        CareerPathEngine careerPathEngine =
+                mock(CareerPathEngine.class);
 
-    AIService aiService =
-            mock(AIService.class);
+        AIService aiService =
+                mock(AIService.class);
 
-    SkillIntelligenceService skillIntelligenceService =
-            mock(SkillIntelligenceService.class);
+        SkillIntelligenceService skillIntelligenceService =
+                mock(SkillIntelligenceService.class);
 
-    Skill javaSkill =
-            new Skill();
+        Skill javaSkill =
+                new Skill();
 
-    javaSkill.setName("Java");
+        javaSkill.setName("Java");
 
-    UserSkill validUserSkill =
-            new UserSkill();
+        UserSkill validUserSkill =
+                new UserSkill();
 
-    validUserSkill.setSkill(javaSkill);
+        validUserSkill.setSkill(javaSkill);
 
-    UserSkill missingSkill =
-            new UserSkill();
+        UserSkill missingSkill =
+                new UserSkill();
 
-    missingSkill.setSkill(null);
+        missingSkill.setSkill(null);
 
-    List<UserSkill> userSkills =
-            new java.util.ArrayList<>();
+        List<UserSkill> userSkills =
+                new ArrayList<>();
 
-    userSkills.add(validUserSkill);
-    userSkills.add(missingSkill);
-    userSkills.add(null);
+        userSkills.add(validUserSkill);
+        userSkills.add(missingSkill);
+        userSkills.add(null);
 
-    when(userSkillRepository.findByUserId(4L))
-            .thenReturn(userSkills);
+        when(userSkillRepository.findByUserId(4L))
+                .thenReturn(userSkills);
 
-    SkillIntelligenceResponse response =
-            new SkillIntelligenceResponse(
-                    List.of(
-                            new SkillIntelligenceResponse
-                                    .SkillRelationship(
-                                            "Java",
-                                            List.of()
-                                    )
-                    )
-            );
+        SkillIntelligenceResponse response =
+                new SkillIntelligenceResponse(
+                        List.of(
+                                new SkillIntelligenceResponse
+                                        .SkillRelationship(
+                                                "Java",
+                                                List.of(),
+                                                List.of()
+                                        )
+                        )
+                );
 
-    when(skillIntelligenceService.analyzeSkills(
-            List.of("Java")
-    )).thenReturn(response);
+        when(skillIntelligenceService.analyzeSkills(
+                List.of("Java")
+        )).thenReturn(response);
 
-    CareerAIController controller =
-            new CareerAIController(
-                    careerPathRepository,
-                    userSkillRepository,
-                    careerPathEngine,
-                    aiService,
-                    skillIntelligenceService
-            );
+        CareerAIController controller =
+                new CareerAIController(
+                        careerPathRepository,
+                        userSkillRepository,
+                        careerPathEngine,
+                        aiService,
+                        skillIntelligenceService
+                );
 
-    controller.getSkillIntelligence(4L);
+        controller.getSkillIntelligence(4L);
 
-    verify(
-            skillIntelligenceService
-    ).analyzeSkills(
-            List.of("Java")
-    );
-}
+        verify(
+                skillIntelligenceService
+        ).analyzeSkills(
+                List.of("Java")
+        );
+    }
 }

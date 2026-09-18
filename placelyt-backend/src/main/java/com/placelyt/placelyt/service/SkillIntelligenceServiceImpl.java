@@ -37,17 +37,25 @@ public class SkillIntelligenceServiceImpl
         String systemPrompt = """
                 You are Placelyt's skill intelligence assistant.
 
-                Your task is to identify meaningful skills that are
-                directly related to the skills provided by the application.
+                Your task is to analyze the skills provided by the
+                application and identify two types of relationships:
 
-                Use only reasonable technical or professional skill
-                relationships.
+                1. Directly related skills:
+                   Skills that are technically or professionally
+                   connected to the original skill.
+
+                2. Transferable skills:
+                   Skills, knowledge areas, or technical foundations
+                   that can reasonably transfer to another related
+                   technical or professional area.
+
+                Use only meaningful and reasonable relationships.
 
                 Do not invent unrelated skills.
 
-                Do not assume that the user possesses any related skill.
-                A related skill is only a possible relationship, not proof
-                that the user has that skill.
+                Do not assume that the user possesses any related or
+                transferable skill. These are possible relationships,
+                not proof that the user has those skills.
 
                 Return ONLY valid JSON.
 
@@ -60,18 +68,29 @@ public class SkillIntelligenceServiceImpl
                       "relatedSkills": [
                         "related skill 1",
                         "related skill 2"
+                      ],
+                      "transferableSkills": [
+                        "transferable skill 1",
+                        "transferable skill 2"
                       ]
                     }
                   ]
                 }
 
                 Rules:
+
                 - Include every input skill exactly once.
-                - Preserve the original skill name.
+                - Preserve the original skill name exactly.
                 - relatedSkills must be an array of strings.
-                - relatedSkills may be empty when there are no meaningful
-                  related skills.
-                - Do not include the original skill inside relatedSkills.
+                - transferableSkills must be an array of strings.
+                - Either array may be empty when there are no meaningful
+                  relationships.
+                - Do not include the original skill inside either array.
+                - Do not duplicate a skill within the same array.
+                - Keep related skills technically relevant.
+                - Keep transferable skills meaningfully transferable.
+                - Do not confuse a possible relationship with user
+                  possession.
                 - Do not include Markdown.
                 - Do not include code fences.
                 - Do not add fields outside the required structure.
@@ -79,7 +98,7 @@ public class SkillIntelligenceServiceImpl
 
         String userPrompt = """
                 Analyze the following skills and identify their meaningful
-                related skills.
+                related skills and transferable skills.
 
                 Skills:
 
@@ -90,7 +109,8 @@ public class SkillIntelligenceServiceImpl
                 String.join(", ", skillNames)
         );
 
-        long startTime = System.currentTimeMillis();
+        long startTime =
+                System.currentTimeMillis();
 
         logger.info(
                 "Starting skill intelligence analysis for skills: {}",
@@ -193,11 +213,22 @@ public class SkillIntelligenceServiceImpl
 
             for (JsonNode skillNode : skillsNode) {
 
+                if (skillNode == null ||
+                        !skillNode.isObject()) {
+
+                    throw new IllegalStateException(
+                            "Each skill relationship must be a JSON object"
+                    );
+                }
+
                 JsonNode skill =
                         skillNode.get("skill");
 
                 JsonNode relatedSkills =
                         skillNode.get("relatedSkills");
+
+                JsonNode transferableSkills =
+                        skillNode.get("transferableSkills");
 
                 validateStringField(
                         skill,
@@ -209,12 +240,20 @@ public class SkillIntelligenceServiceImpl
                         "relatedSkills"
                 );
 
+                validateStringArray(
+                        transferableSkills,
+                        "transferableSkills"
+                );
+
                 relationships.add(
                         new SkillIntelligenceResponse
                                 .SkillRelationship(
                                         skill.asText(),
                                         parseStringArray(
                                                 relatedSkills
+                                        ),
+                                        parseStringArray(
+                                                transferableSkills
                                         )
                                 )
                 );
@@ -293,6 +332,7 @@ public class SkillIntelligenceServiceImpl
                 new ArrayList<>();
 
         for (JsonNode item : arrayNode) {
+
             values.add(item.asText());
         }
 
@@ -388,6 +428,7 @@ public class SkillIntelligenceServiceImpl
                     new SkillIntelligenceResponse
                             .SkillRelationship(
                                     skillName,
+                                    new ArrayList<>(),
                                     new ArrayList<>()
                             )
             );

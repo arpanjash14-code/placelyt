@@ -11,6 +11,7 @@ public class SkillIntelligenceResponse {
 
     public SkillIntelligenceResponse(
             List<SkillRelationship> skills) {
+
         this.skills = skills;
     }
 
@@ -20,6 +21,7 @@ public class SkillIntelligenceResponse {
 
     public void setSkills(
             List<SkillRelationship> skills) {
+
         this.skills = skills;
     }
 
@@ -27,16 +29,19 @@ public class SkillIntelligenceResponse {
 
         private String skill;
         private List<String> relatedSkills;
+        private List<String> transferableSkills;
 
         public SkillRelationship() {
         }
 
         public SkillRelationship(
                 String skill,
-                List<String> relatedSkills) {
+                List<String> relatedSkills,
+                List<String> transferableSkills) {
 
             this.skill = skill;
             this.relatedSkills = relatedSkills;
+            this.transferableSkills = transferableSkills;
         }
 
         public String getSkill() {
@@ -56,6 +61,17 @@ public class SkillIntelligenceResponse {
 
             this.relatedSkills =
                     relatedSkills;
+        }
+
+        public List<String> getTransferableSkills() {
+            return transferableSkills;
+        }
+
+        public void setTransferableSkills(
+                List<String> transferableSkills) {
+
+            this.transferableSkills =
+                    transferableSkills;
         }
     }
 }
