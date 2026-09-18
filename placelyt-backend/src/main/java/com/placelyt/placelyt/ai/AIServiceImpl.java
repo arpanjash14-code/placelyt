@@ -41,13 +41,45 @@ public class AIServiceImpl implements AIService {
         String systemPrompt = """
                 You are Placelyt's career intelligence assistant.
 
-                Your job is to explain career-path readiness using only
-                the structured information provided by the application.
+                Your job is to explain a student's current readiness for
+                a career path and provide personalized, practical next
+                steps using only the structured information provided by
+                the application.
 
-                Do not invent skills, experience, qualifications, or facts
-                about the student.
+                The application provides:
+                - The target career path.
+                - A deterministic readiness score.
+                - Skills already matched to the career path.
+                - Skills currently missing from the student's profile.
 
-                Do not change or recalculate the readiness score.
+                The readiness score is calculated by Placelyt's
+                deterministic career-path engine. Do not change,
+                recalculate, reinterpret, or override the score.
+
+                Do not invent skills, experience, qualifications,
+                achievements, projects, or facts about the student.
+
+                A missing skill means that the skill is not currently
+                matched to the career path. Do not claim that the student
+                has no knowledge of it beyond the provided information.
+
+                Personalize the guidance using the actual matched and
+                missing skills.
+
+                Next steps must primarily address the provided skill gaps.
+                Prefer concrete actions such as:
+                - learning a specific missing skill,
+                - practicing a missing skill,
+                - building a small project using a missing skill,
+                - combining an existing matched skill with a missing skill,
+                - gradually progressing from foundational skills to
+                  more advanced missing skills.
+
+                Do not recommend technologies or skills that are unrelated
+                to the provided career path and skill gaps.
+
+                Do not assume that completing a suggested action guarantees
+                employment or a particular career outcome.
 
                 Return ONLY valid JSON.
 
@@ -61,34 +93,62 @@ public class AIServiceImpl implements AIService {
                     "missing skill 2"
                   ],
                   "nextSteps": [
-                    "practical next step 1",
-                    "practical next step 2"
+                    "personalized practical next step 1",
+                    "personalized practical next step 2"
                   ]
                 }
 
                 Rules:
+
                 - summary must be a non-empty string.
                 - whyRelevant must be a non-empty string.
                 - skillGaps must be an array of strings.
                 - nextSteps must be an array of strings.
+                - skillGaps must be based only on the provided missing skills.
+                - Do not invent additional skill gaps.
+                - nextSteps must address the provided skill gaps whenever
+                  skill gaps exist.
+                - nextSteps should be actionable rather than generic.
+                - Do not claim that the student already possesses a
+                  missing skill.
+                - Do not change the readiness score.
                 - Do not include Markdown.
                 - Do not include code fences.
                 - Do not add any fields outside the required structure.
                 """;
 
         String userPrompt = """
-                Analyze the following career-path information.
+                Analyze the following career-path information and provide
+                personalized career guidance.
 
                 Career Path: %s
                 Readiness Score: %.1f%%
                 Matched Skills: %s
                 Missing Skills: %s
 
+                Use the student's matched skills as their current
+                foundation.
+
+                Use the missing skills as the primary basis for identifying
+                skill gaps and generating next steps.
+
+                Prioritize the next steps so that they form a reasonable
+                progression from the student's current foundation toward
+                the target career path.
+
+                If multiple skill gaps are provided, prioritize them based
+                on a sensible learning progression rather than simply
+                repeating the list.
+
                 Provide:
-                1. A concise summary.
-                2. Why this career path is relevant.
-                3. The major skill gaps.
-                4. Practical next steps.
+
+                1. A concise summary of the student's current position.
+                2. Why this career path is relevant based on the provided
+                   matched skills.
+                3. The major skill gaps using only the provided missing
+                   skills.
+                4. Personalized, practical next steps that directly
+                   address those gaps.
 
                 Return ONLY the required JSON object.
                 """.formatted(
@@ -170,6 +230,7 @@ public class AIServiceImpl implements AIService {
                     objectMapper.readTree(aiResponse);
 
             if (root == null || !root.isObject()) {
+
                 throw new IllegalStateException(
                         "AI response must be a JSON object"
                 );
@@ -284,6 +345,7 @@ public class AIServiceImpl implements AIService {
                 new ArrayList<>();
 
         for (JsonNode item : arrayNode) {
+
             values.add(item.asText());
         }
 
@@ -380,6 +442,7 @@ public class AIServiceImpl implements AIService {
                     value.trim();
 
             if (!trimmed.isBlank()) {
+
                 result.add(trimmed);
             }
         }
