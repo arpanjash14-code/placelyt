@@ -3,6 +3,7 @@ package com.placelyt.placelyt.ai;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.placelyt.placelyt.dto.CareerAIResponse;
+import com.placelyt.placelyt.dto.CareerPathAlternativeResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -213,6 +214,212 @@ public class AIServiceImpl implements AIService {
         }
     }
 
+    @Override
+    public List<CareerPathAlternativeResponse>
+    generateCareerPathAlternativeExplanations(
+            String targetCareerPathName,
+            List<CareerPathAlternativeResponse> alternatives) {
+
+        validateAlternativeInput(
+                targetCareerPathName,
+                alternatives
+        );
+
+        if (alternatives.isEmpty()) {
+            return new ArrayList<>();
+        }
+
+        String systemPrompt = """
+                You are Placelyt's career intelligence assistant.
+
+                Your job is to explain why deterministic career-path
+                alternatives may be relevant to a student.
+
+                Placelyt has already selected the alternative career paths
+                using its deterministic career-path engine.
+
+                Do NOT:
+                - invent additional career paths,
+                - remove alternative career paths,
+                - change career-path names,
+                - change readiness scores,
+                - change matched skills,
+                - change missing skills,
+                - invent student experience,
+                - invent qualifications,
+                - invent achievements,
+                - invent skills.
+
+                The deterministic information provided by Placelyt is the
+                source of truth.
+
+                AI should ONLY provide a concise explanation of why each
+                supplied alternative may be relevant based on its
+                relationship to the target career path and the supplied
+                matched and missing skills.
+
+                A matched skill means that Placelyt has matched that skill
+                to the career path.
+
+                A missing skill means that the skill is not currently
+                matched to that career path. Do not claim that the student
+                has no knowledge of it beyond the provided information.
+
+                Do not make employment guarantees or predictions.
+
+                Return ONLY valid JSON.
+
+                The JSON must follow exactly this structure:
+
+                {
+                  "alternatives": [
+                    {
+                      "careerPathName": "existing career path name",
+                      "whyAlternative": "concise explanation"
+                    }
+                  ]
+                }
+
+                Rules:
+
+                - Include exactly one explanation for every supplied
+                  alternative.
+                - Preserve every supplied career path name exactly.
+                - Preserve the original order.
+                - whyAlternative must be a non-empty string.
+                - whyAlternative must be based only on the supplied data.
+                - Do not include readiness scores in the AI output.
+                - Do not include matched skills in the AI output.
+                - Do not include missing skills in the AI output.
+                - Do not add fields outside the required structure.
+                - Do not include Markdown.
+                - Do not include code fences.
+                """;
+
+        StringBuilder alternativesData =
+                new StringBuilder();
+
+        for (CareerPathAlternativeResponse alternative :
+                alternatives) {
+
+            alternativesData.append("""
+                    Career Path: %s
+                    Readiness Score: %.1f%%
+                    Matched Skills: %s
+                    Missing Skills: %s
+
+                    """.formatted(
+                    alternative.getCareerPathName(),
+                    alternative.getReadinessScore(),
+                    formatSkills(alternative.getMatchedSkills()),
+                    formatSkills(alternative.getMissingSkills())
+            ));
+        }
+
+        String userPrompt = """
+                The student's target career path is:
+
+                Target Career Path: %s
+
+                The following alternative career paths were selected
+                deterministically by Placelyt:
+
+                %s
+
+                Explain why each supplied alternative may be relevant.
+
+                Consider:
+                - shared matched skills,
+                - the alternative's readiness score,
+                - the alternative's missing skills,
+                - the relationship between the alternative and the target.
+
+                Do not calculate a new readiness score.
+
+                Do not invent any information.
+
+                Return ONLY the required JSON object.
+                """.formatted(
+                targetCareerPathName,
+                alternativesData
+        );
+
+        long startTime =
+                System.currentTimeMillis();
+
+        logger.info(
+                "Starting AI career-path alternative explanations " +
+                "for targetPath='{}', alternativeCount={}",
+                targetCareerPathName,
+                alternatives.size()
+        );
+
+        try {
+
+            String aiResponse =
+                    aiProvider.generateResponse(
+                            systemPrompt,
+                            userPrompt
+                    );
+
+            List<String> explanations =
+                    parseAndValidateAlternativeResponse(
+                            aiResponse,
+                            alternatives
+                    );
+
+            List<CareerPathAlternativeResponse> enriched =
+                    new ArrayList<>();
+
+            for (int i = 0; i < alternatives.size(); i++) {
+
+                CareerPathAlternativeResponse original =
+                        alternatives.get(i);
+
+                enriched.add(
+                        new CareerPathAlternativeResponse(
+                                original.getCareerPathName(),
+                                original.getReadinessScore(),
+                                explanations.get(i),
+                                original.getMatchedSkills(),
+                                original.getMissingSkills()
+                        )
+                );
+            }
+
+            long duration =
+                    System.currentTimeMillis() - startTime;
+
+            logger.info(
+                    "AI career-path alternative explanations " +
+                    "completed successfully for targetPath='{}' " +
+                    "in {} ms",
+                    targetCareerPathName,
+                    duration
+            );
+
+            return enriched;
+
+        } catch (Exception exception) {
+
+            long duration =
+                    System.currentTimeMillis() - startTime;
+
+            logger.warn(
+                    "AI career-path alternative explanations failed " +
+                    "for targetPath='{}' after {} ms. " +
+                    "Using deterministic fallback. Reason={}",
+                    targetCareerPathName,
+                    duration,
+                    exception.getMessage()
+            );
+
+            return createAlternativeFallbackResponse(
+                    alternatives
+            );
+        }
+    }
+
     private CareerAIResponse parseAndValidateResponse(
             String aiResponse) {
 
@@ -294,6 +501,119 @@ public class AIServiceImpl implements AIService {
         }
     }
 
+    private List<String> parseAndValidateAlternativeResponse(
+            String aiResponse,
+            List<CareerPathAlternativeResponse> alternatives) {
+
+        if (aiResponse == null ||
+                aiResponse.isBlank()) {
+
+            throw new IllegalStateException(
+                    "AI provider returned an empty response"
+            );
+        }
+
+        try {
+
+            JsonNode root =
+                    objectMapper.readTree(aiResponse);
+
+            if (root == null || !root.isObject()) {
+
+                throw new IllegalStateException(
+                        "AI response must be a JSON object"
+                );
+            }
+
+            JsonNode alternativeArray =
+                    root.get("alternatives");
+
+            if (alternativeArray == null ||
+                    !alternativeArray.isArray()) {
+
+                throw new IllegalStateException(
+                        "AI response field 'alternatives' " +
+                        "must be an array"
+                );
+            }
+
+            if (alternativeArray.size() !=
+                    alternatives.size()) {
+
+                throw new IllegalStateException(
+                        "AI response alternative count does not " +
+                        "match the supplied alternatives"
+                );
+            }
+
+            List<String> explanations =
+                    new ArrayList<>();
+
+            for (int i = 0;
+                 i < alternativeArray.size();
+                 i++) {
+
+                JsonNode item =
+                        alternativeArray.get(i);
+
+                if (item == null ||
+                        !item.isObject()) {
+
+                    throw new IllegalStateException(
+                            "Each alternative explanation " +
+                            "must be an object"
+                    );
+                }
+
+                JsonNode careerPathName =
+                        item.get("careerPathName");
+
+                JsonNode whyAlternative =
+                        item.get("whyAlternative");
+
+                validateStringField(
+                        careerPathName,
+                        "careerPathName"
+                );
+
+                validateStringField(
+                        whyAlternative,
+                        "whyAlternative"
+                );
+
+                String expectedCareerPathName =
+                        alternatives.get(i)
+                                .getCareerPathName();
+
+                if (!expectedCareerPathName.equals(
+                        careerPathName.asText())) {
+
+                    throw new IllegalStateException(
+                            "AI changed career path name at index " +
+                            i
+                    );
+                }
+
+                explanations.add(
+                        whyAlternative.asText()
+                );
+            }
+
+            return explanations;
+
+        } catch (IllegalStateException exception) {
+
+            throw exception;
+
+        } catch (Exception exception) {
+
+            throw new IllegalStateException(
+                    "Failed to parse structured AI alternative response",
+                    exception
+            );
+        }
+    }
+
     private void validateStringField(
             JsonNode field,
             String fieldName) {
@@ -332,7 +652,8 @@ public class AIServiceImpl implements AIService {
                 throw new IllegalStateException(
                         "AI response field '" +
                                 fieldName +
-                                "' must contain only non-empty strings"
+                                "' must contain only " +
+                                "non-empty strings"
                 );
             }
         }
@@ -423,6 +744,52 @@ public class AIServiceImpl implements AIService {
         );
     }
 
+    private List<CareerPathAlternativeResponse>
+    createAlternativeFallbackResponse(
+            List<CareerPathAlternativeResponse> alternatives) {
+
+        List<CareerPathAlternativeResponse> fallback =
+                new ArrayList<>();
+
+        for (CareerPathAlternativeResponse alternative :
+                alternatives) {
+
+            String explanation;
+
+            if (alternative.getMatchedSkills() == null ||
+                    alternative.getMatchedSkills().isEmpty()) {
+
+                explanation =
+                        "This career path is included as an " +
+                        "alternative based on Placelyt's career-path " +
+                        "analysis.";
+
+            } else {
+
+                explanation =
+                        "This alternative shares matched skills " +
+                        "with your current skill profile: " +
+                        String.join(
+                                ", ",
+                                alternative.getMatchedSkills()
+                        ) +
+                        ".";
+            }
+
+            fallback.add(
+                    new CareerPathAlternativeResponse(
+                            alternative.getCareerPathName(),
+                            alternative.getReadinessScore(),
+                            explanation,
+                            alternative.getMatchedSkills(),
+                            alternative.getMissingSkills()
+                    )
+            );
+        }
+
+        return fallback;
+    }
+
     private List<String> parseCommaSeparatedValues(
             String values) {
 
@@ -448,6 +815,21 @@ public class AIServiceImpl implements AIService {
         }
 
         return result;
+    }
+
+    private String formatSkills(
+            List<String> skills) {
+
+        if (skills == null ||
+                skills.isEmpty()) {
+
+            return "None";
+        }
+
+        return String.join(
+                ", ",
+                skills
+        );
     }
 
     private void validateInput(
@@ -491,6 +873,125 @@ public class AIServiceImpl implements AIService {
         );
     }
 
+    private void validateAlternativeInput(
+            String targetCareerPathName,
+            List<CareerPathAlternativeResponse> alternatives) {
+
+        if (targetCareerPathName == null ||
+                targetCareerPathName.isBlank()) {
+
+            throw new IllegalArgumentException(
+                    "Target career path name is required"
+            );
+        }
+
+        if (targetCareerPathName.length() > 200) {
+
+            throw new IllegalArgumentException(
+                    "Target career path name is too long"
+            );
+        }
+
+        if (alternatives == null) {
+
+            throw new IllegalArgumentException(
+                    "Alternatives are required"
+            );
+        }
+
+        if (alternatives.size() > 20) {
+
+            throw new IllegalArgumentException(
+                    "Too many career path alternatives"
+            );
+        }
+
+        for (CareerPathAlternativeResponse alternative :
+                alternatives) {
+
+            if (alternative == null) {
+
+                throw new IllegalArgumentException(
+                        "Alternative career path cannot be null"
+                );
+            }
+
+            if (alternative.getCareerPathName() == null ||
+                    alternative.getCareerPathName().isBlank()) {
+
+                throw new IllegalArgumentException(
+                        "Alternative career path name is required"
+                );
+            }
+
+            if (alternative.getCareerPathName().length() > 200) {
+
+                throw new IllegalArgumentException(
+                        "Alternative career path name is too long"
+                );
+            }
+
+            double readinessScore =
+                    alternative.getReadinessScore();
+
+            if (Double.isNaN(readinessScore) ||
+                    Double.isInfinite(readinessScore)) {
+
+                throw new IllegalArgumentException(
+                        "Alternative readiness score must be valid"
+                );
+            }
+
+            if (readinessScore < 0.0 ||
+                    readinessScore > 100.0) {
+
+                throw new IllegalArgumentException(
+                        "Alternative readiness score must be between " +
+                        "0 and 100"
+                );
+            }
+
+            validateSkillList(
+                    alternative.getMatchedSkills(),
+                    "Matched skills"
+            );
+
+            validateSkillList(
+                    alternative.getMissingSkills(),
+                    "Missing skills"
+            );
+        }
+    }
+
+    private void validateSkillList(
+            List<String> skills,
+            String fieldName) {
+
+        if (skills == null) {
+            return;
+        }
+
+        for (String skill : skills) {
+
+            if (skill == null ||
+                    skill.isBlank()) {
+
+                throw new IllegalArgumentException(
+                        fieldName +
+                                " cannot contain blank values"
+                );
+            }
+
+            if (skill.length() > 200) {
+
+                throw new IllegalArgumentException(
+                        fieldName +
+                                " contains a value that is too long"
+                );
+            }
+        }
+    }
+
     private void validateSkillInput(
             String skills,
             String fieldName) {
@@ -507,4 +1008,275 @@ public class AIServiceImpl implements AIService {
             );
         }
     }
+
+    @Override
+public List<String> generateCareerNextSteps(
+        String careerPathName,
+        double readinessScore,
+        List<String> matchedSkills,
+        List<String> missingSkills) {
+
+    if (careerPathName == null ||
+            careerPathName.isBlank()) {
+
+        throw new IllegalArgumentException(
+                "Career path name cannot be blank"
+        );
+    }
+
+    if (Double.isNaN(readinessScore) ||
+            Double.isInfinite(readinessScore) ||
+            readinessScore < 0.0 ||
+            readinessScore > 100.0) {
+
+        throw new IllegalArgumentException(
+                "Readiness score must be between 0 and 100"
+        );
+    }
+
+    if (matchedSkills == null ||
+            missingSkills == null) {
+
+        throw new IllegalArgumentException(
+                "Skill lists cannot be null"
+        );
+    }
+
+    String systemPrompt = """
+            You are Placelyt's career intelligence assistant.
+
+            Your task is to provide personalized, actionable
+            next-step suggestions for a student pursuing a
+            career path.
+
+            Placelyt has already calculated the student's
+            readiness score, matched skills, and missing skills.
+
+            The deterministic information provided by Placelyt
+            is the source of truth.
+
+            Do NOT:
+
+            - invent student skills,
+            - invent experience,
+            - invent qualifications,
+            - invent achievements,
+            - claim that the student has completed something
+              that is not supplied,
+            - change the readiness score,
+            - change matched skills,
+            - change missing skills,
+            - guarantee employment,
+            - predict employment outcomes.
+
+            Suggestions must be based only on the supplied
+            career path, readiness score, matched skills, and
+            missing skills.
+
+            Prioritize actions that address missing skills while
+            also building on matched skills.
+
+            Suggestions should be practical for a student and
+            specific enough to act upon.
+
+            Return ONLY valid JSON.
+
+            The JSON must follow exactly this structure:
+
+            {
+              "nextSteps": [
+                "actionable next step"
+              ]
+            }
+
+            Rules:
+
+            - Return between 1 and 10 next steps.
+            - Every next step must be a non-empty string.
+            - Every next step must be actionable.
+            - Do not invent information about the student.
+            - Do not introduce unsupported student skills.
+            - Do not repeat the same suggestion.
+            - Do not include Markdown.
+            - Do not include code fences.
+            """;
+
+    String userPrompt = """
+            Career Path: %s
+
+            Readiness Score: %.1f%%
+
+            Matched Skills:
+            %s
+
+            Missing Skills:
+            %s
+
+            Provide personalized next-step suggestions.
+
+            Focus first on meaningful actions related to the
+            missing skills, then suggest ways to strengthen
+            the matched skills where appropriate.
+
+            Return ONLY the required JSON object.
+            """.formatted(
+            careerPathName,
+            readinessScore,
+            matchedSkills.isEmpty()
+                    ? "None"
+                    : String.join(", ", matchedSkills),
+            missingSkills.isEmpty()
+                    ? "None"
+                    : String.join(", ", missingSkills)
+    );
+
+    String aiResponse =
+            aiProvider.generateResponse(
+                    systemPrompt,
+                    userPrompt
+            );
+
+    try {
+
+        JsonNode root =
+                objectMapper.readTree(aiResponse);
+
+        if (root == null ||
+                !root.isObject()) {
+
+            return createNextStepsFallback(
+                    matchedSkills,
+                    missingSkills
+            );
+        }
+
+        JsonNode nextStepsNode =
+                root.get("nextSteps");
+
+        if (nextStepsNode == null ||
+                !nextStepsNode.isArray() ||
+                nextStepsNode.isEmpty() ||
+                nextStepsNode.size() > 10) {
+
+            return createNextStepsFallback(
+                    matchedSkills,
+                    missingSkills
+            );
+        }
+
+        List<String> nextSteps =
+                new ArrayList<>();
+
+        for (JsonNode item : nextStepsNode) {
+
+            if (!item.isTextual()) {
+
+                return createNextStepsFallback(
+                        matchedSkills,
+                        missingSkills
+                );
+            }
+
+            String nextStep =
+                    item.asText().trim();
+
+            if (nextStep.isBlank() ||
+                    nextStep.length() > 500) {
+
+                return createNextStepsFallback(
+                        matchedSkills,
+                        missingSkills
+                );
+            }
+
+            boolean duplicate =
+                    nextSteps.stream()
+                            .anyMatch(existing ->
+                                    existing.equalsIgnoreCase(
+                                            nextStep
+                                    )
+                            );
+
+            if (duplicate) {
+
+                return createNextStepsFallback(
+                        matchedSkills,
+                        missingSkills
+                );
+            }
+
+            nextSteps.add(nextStep);
+        }
+
+        return nextSteps;
+
+    } catch (Exception exception) {
+
+        logger.warn(
+                "Invalid career next-step AI response; using fallback",
+                exception
+        );
+
+        return createNextStepsFallback(
+                matchedSkills,
+                missingSkills
+        );
+    }
+}
+
+private List<String> createNextStepsFallback(
+        List<String> matchedSkills,
+        List<String> missingSkills) {
+
+    List<String> fallback =
+            new ArrayList<>();
+
+    for (String skill : missingSkills) {
+
+        if (skill == null ||
+                skill.isBlank()) {
+            continue;
+        }
+
+        fallback.add(
+                "Develop your " +
+                        skill +
+                        " skills through focused study and a practical project."
+        );
+
+        if (fallback.size() >= 10) {
+            break;
+        }
+    }
+
+    if (fallback.isEmpty()) {
+
+        for (String skill : matchedSkills) {
+
+            if (skill == null ||
+                    skill.isBlank()) {
+                continue;
+            }
+
+            fallback.add(
+                    "Strengthen your " +
+                            skill +
+                            " skills through deeper practice and project work."
+            );
+
+            if (fallback.size() >= 10) {
+                break;
+            }
+        }
+    }
+
+    if (fallback.isEmpty()) {
+
+        fallback.add(
+                "Build practical projects aligned with the target career path."
+        );
+    }
+
+    return fallback;
+}
 }

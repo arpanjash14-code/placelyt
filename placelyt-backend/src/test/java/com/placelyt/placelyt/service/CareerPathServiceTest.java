@@ -1,5 +1,6 @@
 package com.placelyt.placelyt.service;
 
+import com.placelyt.placelyt.dto.CareerPathAlternativeResponse;
 import com.placelyt.placelyt.dto.CareerPathResponse;
 import com.placelyt.placelyt.entity.CareerPath;
 import com.placelyt.placelyt.entity.UserSkill;
@@ -9,17 +10,16 @@ import com.placelyt.placelyt.repository.StudentProfileRepository;
 import com.placelyt.placelyt.repository.UserSkillRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.verify;
-
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.junit.jupiter.MockitoExtension;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class CareerPathServiceTest {
@@ -293,6 +293,349 @@ class CareerPathServiceTest {
         assertTrue(responses.isEmpty());
 
         verify(careerPathRepository).findAll();
+    }
+
+    @Test
+    void shouldReturnRelevantCareerPathAlternatives() {
+
+        CareerPath backend =
+                createCareerPath(
+                        1L,
+                        "Backend Engineering",
+                        "Backend career path"
+                );
+
+        CareerPath fullStack =
+                createCareerPath(
+                        2L,
+                        "Full Stack Development",
+                        "Full stack career path"
+                );
+
+        CareerPath dataEngineering =
+                createCareerPath(
+                        3L,
+                        "Data Engineering",
+                        "Data engineering career path"
+                );
+
+        when(studentProfileRepository.findByUserId(4L))
+                .thenReturn(Optional.of(
+                        new com.placelyt.placelyt.entity.StudentProfile()
+                ));
+
+        List<UserSkill> userSkills = List.of();
+
+        when(userSkillRepository.findByUserId(4L))
+                .thenReturn(userSkills);
+
+        when(careerPathRepository.findById(1L))
+                .thenReturn(Optional.of(backend));
+
+        when(careerPathRepository.findAll())
+                .thenReturn(List.of(
+                        backend,
+                        fullStack,
+                        dataEngineering
+                ));
+
+        when(careerPathEngine.getMatchedSkills(
+                backend,
+                userSkills
+        )).thenReturn(List.of(
+                "Java",
+                "SQL"
+        ));
+
+        when(careerPathEngine.calculateReadiness(
+                fullStack,
+                userSkills
+        )).thenReturn(50.0);
+
+        when(careerPathEngine.getMatchedSkills(
+                fullStack,
+                userSkills
+        )).thenReturn(List.of(
+                "Java",
+                "SQL"
+        ));
+
+        when(careerPathEngine.getMissingSkills(
+                fullStack,
+                userSkills
+        )).thenReturn(List.of(
+                "React"
+        ));
+
+        when(careerPathEngine.calculateReadiness(
+                dataEngineering,
+                userSkills
+        )).thenReturn(25.0);
+
+        when(careerPathEngine.getMatchedSkills(
+                dataEngineering,
+                userSkills
+        )).thenReturn(List.of(
+                "SQL"
+        ));
+
+        when(careerPathEngine.getMissingSkills(
+                dataEngineering,
+                userSkills
+        )).thenReturn(List.of(
+                "Python",
+                "ETL"
+        ));
+
+        List<CareerPathAlternativeResponse> responses =
+                careerPathService.getCareerPathAlternatives(
+                        4L,
+                        1L
+                );
+
+        assertEquals(2, responses.size());
+
+        assertEquals(
+                "Full Stack Development",
+                responses.get(0).getCareerPathName()
+        );
+
+        assertEquals(
+                50.0,
+                responses.get(0).getReadinessScore()
+        );
+
+        assertEquals(
+                List.of("Java", "SQL"),
+                responses.get(0).getMatchedSkills()
+        );
+
+        assertEquals(
+                List.of("React"),
+                responses.get(0).getMissingSkills()
+        );
+
+        assertEquals(
+                "Data Engineering",
+                responses.get(1).getCareerPathName()
+        );
+
+        assertEquals(
+                25.0,
+                responses.get(1).getReadinessScore()
+        );
+    }
+
+    @Test
+    void shouldExcludeTargetCareerPathFromAlternatives() {
+
+        CareerPath backend =
+                createCareerPath(
+                        1L,
+                        "Backend Engineering",
+                        "Backend career path"
+                );
+
+        CareerPath fullStack =
+                createCareerPath(
+                        2L,
+                        "Full Stack Development",
+                        "Full stack career path"
+                );
+
+        when(studentProfileRepository.findByUserId(4L))
+                .thenReturn(Optional.of(
+                        new com.placelyt.placelyt.entity.StudentProfile()
+                ));
+
+        List<UserSkill> userSkills = List.of();
+
+        when(userSkillRepository.findByUserId(4L))
+                .thenReturn(userSkills);
+
+        when(careerPathRepository.findById(1L))
+                .thenReturn(Optional.of(backend));
+
+        when(careerPathRepository.findAll())
+                .thenReturn(List.of(
+                        backend,
+                        fullStack
+                ));
+
+        when(careerPathEngine.getMatchedSkills(
+                backend,
+                userSkills
+        )).thenReturn(List.of("Java"));
+
+        when(careerPathEngine.calculateReadiness(
+                fullStack,
+                userSkills
+        )).thenReturn(40.0);
+
+        when(careerPathEngine.getMatchedSkills(
+                fullStack,
+                userSkills
+        )).thenReturn(List.of("Java"));
+
+        when(careerPathEngine.getMissingSkills(
+                fullStack,
+                userSkills
+        )).thenReturn(List.of("React"));
+
+        List<CareerPathAlternativeResponse> responses =
+                careerPathService.getCareerPathAlternatives(
+                        4L,
+                        1L
+                );
+
+        assertEquals(1, responses.size());
+
+        assertEquals(
+                "Full Stack Development",
+                responses.get(0).getCareerPathName()
+        );
+
+        assertFalse(
+                responses.stream()
+                        .anyMatch(response ->
+                                response.getCareerPathName()
+                                        .equals("Backend Engineering")
+                        )
+        );
+    }
+
+    @Test
+    void shouldExcludeCareerPathsWithoutMeaningfulSkillOverlap() {
+
+        CareerPath backend =
+                createCareerPath(
+                        1L,
+                        "Backend Engineering",
+                        "Backend career path"
+                );
+
+        CareerPath frontend =
+                createCareerPath(
+                        2L,
+                        "Frontend Engineering",
+                        "Frontend career path"
+                );
+
+        when(studentProfileRepository.findByUserId(4L))
+                .thenReturn(Optional.of(
+                        new com.placelyt.placelyt.entity.StudentProfile()
+                ));
+
+        List<UserSkill> userSkills = List.of();
+
+        when(userSkillRepository.findByUserId(4L))
+                .thenReturn(userSkills);
+
+        when(careerPathRepository.findById(1L))
+                .thenReturn(Optional.of(backend));
+
+        when(careerPathRepository.findAll())
+                .thenReturn(List.of(
+                        backend,
+                        frontend
+                ));
+
+        when(careerPathEngine.getMatchedSkills(
+                backend,
+                userSkills
+        )).thenReturn(List.of("Java"));
+
+        when(careerPathEngine.calculateReadiness(
+                frontend,
+                userSkills
+        )).thenReturn(75.0);
+
+        when(careerPathEngine.getMatchedSkills(
+                frontend,
+                userSkills
+        )).thenReturn(List.of("React"));
+
+        when(careerPathEngine.getMissingSkills(
+                frontend,
+                userSkills
+        )).thenReturn(List.of("CSS"));
+
+        List<CareerPathAlternativeResponse> responses =
+                careerPathService.getCareerPathAlternatives(
+                        4L,
+                        1L
+                );
+
+        assertNotNull(responses);
+        assertTrue(responses.isEmpty());
+    }
+
+    @Test
+    void shouldThrowExceptionWhenTargetCareerPathDoesNotExist() {
+
+        when(studentProfileRepository.findByUserId(4L))
+                .thenReturn(Optional.of(
+                        new com.placelyt.placelyt.entity.StudentProfile()
+                ));
+
+        when(careerPathRepository.findById(999L))
+                .thenReturn(Optional.empty());
+
+        IllegalArgumentException exception =
+                assertThrows(
+                        IllegalArgumentException.class,
+                        () -> careerPathService
+                                .getCareerPathAlternatives(
+                                        4L,
+                                        999L
+                                )
+                );
+
+        assertEquals(
+                "Target career path not found",
+                exception.getMessage()
+        );
+    }
+
+    @Test
+    void shouldReturnEmptyListWhenNoMeaningfulAlternativesExist() {
+
+        CareerPath backend =
+                createCareerPath(
+                        1L,
+                        "Backend Engineering",
+                        "Backend career path"
+                );
+
+        when(studentProfileRepository.findByUserId(4L))
+                .thenReturn(Optional.of(
+                        new com.placelyt.placelyt.entity.StudentProfile()
+                ));
+
+        List<UserSkill> userSkills = List.of();
+
+        when(userSkillRepository.findByUserId(4L))
+                .thenReturn(userSkills);
+
+        when(careerPathRepository.findById(1L))
+                .thenReturn(Optional.of(backend));
+
+        when(careerPathRepository.findAll())
+                .thenReturn(List.of(backend));
+
+        when(careerPathEngine.getMatchedSkills(
+                backend,
+                userSkills
+        )).thenReturn(List.of("Java"));
+
+        List<CareerPathAlternativeResponse> responses =
+                careerPathService.getCareerPathAlternatives(
+                        4L,
+                        1L
+                );
+
+        assertNotNull(responses);
+        assertTrue(responses.isEmpty());
     }
 
     private CareerPath createCareerPath(
