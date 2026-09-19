@@ -42,16 +42,11 @@ public class CareerAIController {
             CareerPathService careerPathService) {
 
         this.careerPathRepository = careerPathRepository;
-
         this.userSkillRepository = userSkillRepository;
-
         this.careerPathEngine = careerPathEngine;
-
         this.aiService = aiService;
-
         this.skillIntelligenceService =
                 skillIntelligenceService;
-
         this.careerPathService =
                 careerPathService;
     }
@@ -177,11 +172,10 @@ public class CareerAIController {
         return ResponseEntity.ok(nextSteps);
     }
 
-    @GetMapping("/{userId}/{careerPathId}/direction")
     public ResponseEntity<CareerDirectionResponse>
     getCareerDirection(
-            @PathVariable Long userId,
-            @PathVariable Long careerPathId) {
+            Long userId,
+            Long careerPathId) {
 
         CareerDirectionResponse response =
                 careerPathService.getCareerDirection(

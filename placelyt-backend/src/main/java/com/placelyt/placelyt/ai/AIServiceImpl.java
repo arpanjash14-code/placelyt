@@ -544,13 +544,28 @@ public class AIServiceImpl implements AIService {
                         : String.join(", ", missingSkills)
         );
 
-        String aiResponse =
-                aiProvider.generateResponse(
-                        systemPrompt,
-                        userPrompt
-                );
+        long startTime =
+                System.currentTimeMillis();
 
+        logger.info(
+                "Starting AI career next-step generation for path='{}', readinessScore={}",
+                careerPathName,
+                readinessScore
+        );
+
+        /*
+         * IMPORTANT:
+         * The provider call is inside the try block so that provider,
+         * network, timeout, or parsing failures all use the deterministic
+         * fallback rather than propagating to the controller.
+         */
         try {
+
+            String aiResponse =
+                    aiProvider.generateResponse(
+                            systemPrompt,
+                            userPrompt
+                    );
 
             JsonNode root =
                     objectMapper.readTree(aiResponse);
@@ -622,13 +637,29 @@ public class AIServiceImpl implements AIService {
                 nextSteps.add(nextStep);
             }
 
+            long duration =
+                    System.currentTimeMillis() - startTime;
+
+            logger.info(
+                    "AI career next-step generation completed successfully " +
+                    "for path='{}' in {} ms",
+                    careerPathName,
+                    duration
+            );
+
             return nextSteps;
 
         } catch (Exception exception) {
 
+            long duration =
+                    System.currentTimeMillis() - startTime;
+
             logger.warn(
-                    "Invalid career next-step AI response; using fallback",
-                    exception
+                    "AI career next-step generation failed for path='{}' " +
+                    "after {} ms. Using deterministic fallback. Reason={}",
+                    careerPathName,
+                    duration,
+                    exception.getMessage()
             );
 
             return createNextStepsFallback(

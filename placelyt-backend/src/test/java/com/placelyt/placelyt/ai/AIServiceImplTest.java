@@ -1038,6 +1038,51 @@ class AIServiceImplTest {
     }
 
     @Test
+void shouldUseFallbackWhenNextStepsAIProviderFails() {
+
+    AIProvider aiProvider =
+            mock(AIProvider.class);
+
+    when(aiProvider.generateResponse(
+            anyString(),
+            anyString()
+    )).thenThrow(
+            new RuntimeException("AI provider unavailable")
+    );
+
+    AIServiceImpl service =
+            new AIServiceImpl(aiProvider);
+
+    List<String> result =
+            service.generateCareerNextSteps(
+                    "Backend Engineering",
+                    20.0,
+                    List.of("Java"),
+                    List.of(
+                            "Spring Boot",
+                            "SQL"
+                    )
+            );
+
+    assertNotNull(result);
+
+    assertEquals(
+            2,
+            result.size()
+    );
+
+    assertEquals(
+            "Develop your Spring Boot skills through focused study and a practical project.",
+            result.get(0)
+    );
+
+    assertEquals(
+            "Develop your SQL skills through focused study and a practical project.",
+            result.get(1)
+    );
+}
+
+    @Test
     void shouldRejectInvalidNextStepsReadinessScore() {
 
         AIProvider aiProvider =
