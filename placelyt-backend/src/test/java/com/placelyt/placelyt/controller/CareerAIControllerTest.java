@@ -2,7 +2,9 @@ package com.placelyt.placelyt.controller;
 
 import com.placelyt.placelyt.ai.AIService;
 import com.placelyt.placelyt.dto.CareerAIResponse;
+import com.placelyt.placelyt.dto.CareerDirectionResponse;
 import com.placelyt.placelyt.dto.CareerPathAlternativeResponse;
+import com.placelyt.placelyt.dto.CareerPathResponse;
 import com.placelyt.placelyt.dto.SkillIntelligenceResponse;
 import com.placelyt.placelyt.entity.CareerPath;
 import com.placelyt.placelyt.entity.Skill;
@@ -131,156 +133,156 @@ class CareerAIControllerTest {
     }
 
     @Test
-void shouldReturnCareerNextSteps() {
+    void shouldReturnCareerNextSteps() {
 
-    CareerPathRepository careerPathRepository =
-            mock(CareerPathRepository.class);
+        CareerPathRepository careerPathRepository =
+                mock(CareerPathRepository.class);
 
-    UserSkillRepository userSkillRepository =
-            mock(UserSkillRepository.class);
+        UserSkillRepository userSkillRepository =
+                mock(UserSkillRepository.class);
 
-    CareerPathEngine careerPathEngine =
-            mock(CareerPathEngine.class);
+        CareerPathEngine careerPathEngine =
+                mock(CareerPathEngine.class);
 
-    AIService aiService =
-            mock(AIService.class);
+        AIService aiService =
+                mock(AIService.class);
 
-    SkillIntelligenceService skillIntelligenceService =
-            mock(SkillIntelligenceService.class);
+        SkillIntelligenceService skillIntelligenceService =
+                mock(SkillIntelligenceService.class);
 
-    CareerPathService careerPathService =
-            mock(CareerPathService.class);
+        CareerPathService careerPathService =
+                mock(CareerPathService.class);
 
-    CareerPath careerPath =
-            new CareerPath();
+        CareerPath careerPath =
+                new CareerPath();
 
-    careerPath.setId(1L);
-    careerPath.setName(
-            "Backend Engineering"
-    );
+        careerPath.setId(1L);
+        careerPath.setName(
+                "Backend Engineering"
+        );
 
-    Skill javaSkill =
-            new Skill();
+        Skill javaSkill =
+                new Skill();
 
-    javaSkill.setId(1L);
-    javaSkill.setName("Java");
+        javaSkill.setId(1L);
+        javaSkill.setName("Java");
 
-    UserSkill userSkill =
-            new UserSkill();
+        UserSkill userSkill =
+                new UserSkill();
 
-    userSkill.setSkill(javaSkill);
+        userSkill.setSkill(javaSkill);
 
-    List<UserSkill> userSkills =
-            List.of(userSkill);
+        List<UserSkill> userSkills =
+                List.of(userSkill);
 
-    when(careerPathRepository.findById(1L))
-            .thenReturn(Optional.of(careerPath));
+        when(careerPathRepository.findById(1L))
+                .thenReturn(Optional.of(careerPath));
 
-    when(userSkillRepository.findByUserId(4L))
-            .thenReturn(userSkills);
+        when(userSkillRepository.findByUserId(4L))
+                .thenReturn(userSkills);
 
-    when(careerPathEngine.calculateReadiness(
-            careerPath,
-            userSkills
-    )).thenReturn(20.0);
+        when(careerPathEngine.calculateReadiness(
+                careerPath,
+                userSkills
+        )).thenReturn(20.0);
 
-    when(careerPathEngine.getMatchedSkills(
-            careerPath,
-            userSkills
-    )).thenReturn(
-            List.of("Java")
-    );
+        when(careerPathEngine.getMatchedSkills(
+                careerPath,
+                userSkills
+        )).thenReturn(
+                List.of("Java")
+        );
 
-    when(careerPathEngine.getMissingSkills(
-            careerPath,
-            userSkills
-    )).thenReturn(
-            List.of(
-                    "Spring Boot",
-                    "SQL",
-                    "REST APIs",
-                    "Docker"
-            )
-    );
+        when(careerPathEngine.getMissingSkills(
+                careerPath,
+                userSkills
+        )).thenReturn(
+                List.of(
+                        "Spring Boot",
+                        "SQL",
+                        "REST APIs",
+                        "Docker"
+                )
+        );
 
-    List<String> nextSteps =
-            List.of(
-                    "Learn SQL and practice database design.",
-                    "Build a REST API using Spring Boot.",
-                    "Learn Docker and containerize the project."
-            );
+        List<String> nextSteps =
+                List.of(
+                        "Learn SQL and practice database design.",
+                        "Build a REST API using Spring Boot.",
+                        "Learn Docker and containerize the project."
+                );
 
-    when(aiService.generateCareerNextSteps(
-            "Backend Engineering",
-            20.0,
-            List.of("Java"),
-            List.of(
-                    "Spring Boot",
-                    "SQL",
-                    "REST APIs",
-                    "Docker"
-            )
-    )).thenReturn(nextSteps);
+        when(aiService.generateCareerNextSteps(
+                "Backend Engineering",
+                20.0,
+                List.of("Java"),
+                List.of(
+                        "Spring Boot",
+                        "SQL",
+                        "REST APIs",
+                        "Docker"
+                )
+        )).thenReturn(nextSteps);
 
-    CareerAIController controller =
-            new CareerAIController(
-                    careerPathRepository,
-                    userSkillRepository,
-                    careerPathEngine,
-                    aiService,
-                    skillIntelligenceService,
-                    careerPathService
-            );
+        CareerAIController controller =
+                new CareerAIController(
+                        careerPathRepository,
+                        userSkillRepository,
+                        careerPathEngine,
+                        aiService,
+                        skillIntelligenceService,
+                        careerPathService
+                );
 
-    var response =
-            controller.getCareerNextSteps(
-                    4L,
-                    1L
-            );
+        var response =
+                controller.getCareerNextSteps(
+                        4L,
+                        1L
+                );
 
-    assertEquals(
-            200,
-            response.getStatusCode().value()
-    );
+        assertEquals(
+                200,
+                response.getStatusCode().value()
+        );
 
-    assertNotNull(
-            response.getBody()
-    );
+        assertNotNull(
+                response.getBody()
+        );
 
-    assertEquals(
-            3,
-            response.getBody().size()
-    );
+        assertEquals(
+                3,
+                response.getBody().size()
+        );
 
-    assertEquals(
-            "Learn SQL and practice database design.",
-            response.getBody().get(0)
-    );
+        assertEquals(
+                "Learn SQL and practice database design.",
+                response.getBody().get(0)
+        );
 
-    assertEquals(
-            "Build a REST API using Spring Boot.",
-            response.getBody().get(1)
-    );
+        assertEquals(
+                "Build a REST API using Spring Boot.",
+                response.getBody().get(1)
+        );
 
-    assertEquals(
-            "Learn Docker and containerize the project.",
-            response.getBody().get(2)
-    );
+        assertEquals(
+                "Learn Docker and containerize the project.",
+                response.getBody().get(2)
+        );
 
-    verify(
-            aiService
-    ).generateCareerNextSteps(
-            "Backend Engineering",
-            20.0,
-            List.of("Java"),
-            List.of(
-                    "Spring Boot",
-                    "SQL",
-                    "REST APIs",
-                    "Docker"
-            )
-    );
-}
+        verify(
+                aiService
+        ).generateCareerNextSteps(
+                "Backend Engineering",
+                20.0,
+                List.of("Java"),
+                List.of(
+                        "Spring Boot",
+                        "SQL",
+                        "REST APIs",
+                        "Docker"
+                )
+        );
+    }
 
     @Test
     void shouldReturnCareerPathAlternativesWithAIExplanations() {
@@ -524,6 +526,156 @@ void shouldReturnCareerNextSteps() {
         ).generateCareerPathAlternativeExplanations(
                 "Backend Engineering",
                 List.of()
+        );
+    }
+
+    @Test
+    void shouldReturnCareerDirection() {
+
+        CareerPathResponse currentDirection =
+                new CareerPathResponse(
+                        1L,
+                        "Backend Engineering",
+                        "Backend career path",
+                        60.0,
+                        List.of(
+                                "Java",
+                                "Spring Boot",
+                                "SQL"
+                        ),
+                        List.of(
+                                "REST APIs",
+                                "Docker"
+                        )
+                );
+
+        CareerPathResponse targetDirection =
+                new CareerPathResponse(
+                        5L,
+                        "Machine Learning Engineering",
+                        "Machine learning career path",
+                        20.0,
+                        List.of(
+                                "Python"
+                        ),
+                        List.of(
+                                "Machine Learning",
+                                "Statistics",
+                                "TensorFlow",
+                                "PyTorch"
+                        )
+                );
+
+        CareerDirectionResponse directionResponse =
+                new CareerDirectionResponse(
+                        currentDirection,
+                        targetDirection
+                );
+
+        CareerPathRepository careerPathRepository =
+                mock(CareerPathRepository.class);
+
+        UserSkillRepository userSkillRepository =
+                mock(UserSkillRepository.class);
+
+        CareerPathEngine careerPathEngine =
+                mock(CareerPathEngine.class);
+
+        AIService aiService =
+                mock(AIService.class);
+
+        SkillIntelligenceService skillIntelligenceService =
+                mock(SkillIntelligenceService.class);
+
+        CareerPathService careerPathService =
+                mock(CareerPathService.class);
+
+        when(careerPathService.getCareerDirection(
+                4L,
+                5L
+        )).thenReturn(directionResponse);
+
+        CareerAIController controller =
+                new CareerAIController(
+                        careerPathRepository,
+                        userSkillRepository,
+                        careerPathEngine,
+                        aiService,
+                        skillIntelligenceService,
+                        careerPathService
+                );
+
+        var response =
+                controller.getCareerDirection(
+                        4L,
+                        5L
+                );
+
+        assertEquals(
+                200,
+                response.getStatusCode().value()
+        );
+
+        assertNotNull(
+                response.getBody()
+        );
+
+        assertEquals(
+                "Backend Engineering",
+                response.getBody()
+                        .getCurrentDirection()
+                        .getCareerPathName()
+        );
+
+        assertEquals(
+                60.0,
+                response.getBody()
+                        .getCurrentDirection()
+                        .getReadinessScore()
+        );
+
+        assertEquals(
+                "Machine Learning Engineering",
+                response.getBody()
+                        .getTargetDirection()
+                        .getCareerPathName()
+        );
+
+        assertEquals(
+                20.0,
+                response.getBody()
+                        .getTargetDirection()
+                        .getReadinessScore()
+        );
+
+        assertEquals(
+                List.of(
+                        "Java",
+                        "Spring Boot",
+                        "SQL"
+                ),
+                response.getBody()
+                        .getCurrentDirection()
+                        .getMatchedSkills()
+        );
+
+        assertEquals(
+                List.of(
+                        "Machine Learning",
+                        "Statistics",
+                        "TensorFlow",
+                        "PyTorch"
+                ),
+                response.getBody()
+                        .getTargetDirection()
+                        .getMissingSkills()
+        );
+
+        verify(
+                careerPathService
+        ).getCareerDirection(
+                4L,
+                5L
         );
     }
 

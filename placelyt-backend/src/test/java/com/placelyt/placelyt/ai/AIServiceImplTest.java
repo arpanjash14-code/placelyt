@@ -1,6 +1,7 @@
 package com.placelyt.placelyt.ai;
 
 import com.placelyt.placelyt.dto.CareerAIResponse;
+import com.placelyt.placelyt.dto.CareerGuidanceResponse;
 import com.placelyt.placelyt.dto.CareerPathAlternativeResponse;
 import org.junit.jupiter.api.Test;
 
@@ -10,7 +11,6 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.Mockito.*;
-import static org.mockito.ArgumentMatchers.*;
 
 class AIServiceImplTest {
 
@@ -601,10 +601,10 @@ class AIServiceImplTest {
                 alternatives
         );
 
-       verify(aiProvider).generateResponse(
-        contains("deterministic career-path"),
-        contains("Full Stack Development")
-);
+        verify(aiProvider).generateResponse(
+                contains("deterministic career-path"),
+                contains("Full Stack Development")
+        );
     }
 
     @Test
@@ -869,225 +869,816 @@ class AIServiceImplTest {
     }
 
     @Test
-void shouldCreateStructuredCareerNextSteps() {
+    void shouldCreateStructuredCareerNextSteps() {
 
-    AIProvider aiProvider =
-            mock(AIProvider.class);
+        AIProvider aiProvider =
+                mock(AIProvider.class);
 
-    when(aiProvider.generateResponse(
-            anyString(),
-            anyString()
-    )).thenReturn("""
-            {
-              "nextSteps": [
+        when(aiProvider.generateResponse(
+                anyString(),
+                anyString()
+        )).thenReturn("""
+                {
+                  "nextSteps": [
+                    "Learn SQL and practice database design.",
+                    "Build a REST API using Spring Boot.",
+                    "Learn Docker and containerize the project."
+                  ]
+                }
+                """);
+
+        AIServiceImpl service =
+                new AIServiceImpl(aiProvider);
+
+        List<String> result =
+                service.generateCareerNextSteps(
+                        "Backend Engineering",
+                        20.0,
+                        List.of("Java"),
+                        List.of(
+                                "Spring Boot",
+                                "SQL",
+                                "REST APIs",
+                                "Docker"
+                        )
+                );
+
+        assertEquals(
+                3,
+                result.size()
+        );
+
+        assertEquals(
                 "Learn SQL and practice database design.",
+                result.get(0)
+        );
+
+        assertEquals(
                 "Build a REST API using Spring Boot.",
-                "Learn Docker and containerize the project."
-              ]
-            }
-            """);
+                result.get(1)
+        );
 
-    AIServiceImpl service =
-            new AIServiceImpl(aiProvider);
+        assertEquals(
+                "Learn Docker and containerize the project.",
+                result.get(2)
+        );
+    }
 
-    List<String> result =
-            service.generateCareerNextSteps(
-                    "Backend Engineering",
-                    20.0,
-                    List.of("Java"),
-                    List.of(
-                            "Spring Boot",
-                            "SQL",
-                            "REST APIs",
-                            "Docker"
-                    )
-            );
+    @Test
+    void shouldPassCareerInformationToAIProviderForNextSteps() {
 
-    assertEquals(
-            3,
-            result.size()
-    );
+        AIProvider aiProvider =
+                mock(AIProvider.class);
 
-    assertEquals(
-            "Learn SQL and practice database design.",
-            result.get(0)
-    );
+        when(aiProvider.generateResponse(
+                anyString(),
+                anyString()
+        )).thenReturn("""
+                {
+                  "nextSteps": [
+                    "Learn SQL."
+                  ]
+                }
+                """);
 
-    assertEquals(
-            "Build a REST API using Spring Boot.",
-            result.get(1)
-    );
+        AIServiceImpl service =
+                new AIServiceImpl(aiProvider);
 
-    assertEquals(
-            "Learn Docker and containerize the project.",
-            result.get(2)
-    );
-}
+        service.generateCareerNextSteps(
+                "Backend Engineering",
+                20.0,
+                List.of("Java"),
+                List.of("SQL")
+        );
 
-@Test
-void shouldPassCareerInformationToAIProviderForNextSteps() {
+        verify(aiProvider).generateResponse(
+                contains("source of truth"),
+                contains("Backend Engineering")
+        );
+    }
 
-    AIProvider aiProvider =
-            mock(AIProvider.class);
+    @Test
+    void shouldUseFallbackForInvalidNextStepsJson() {
 
-    when(aiProvider.generateResponse(
-            anyString(),
-            anyString()
-    )).thenReturn("""
-            {
-              "nextSteps": [
-                "Learn SQL."
-              ]
-            }
-            """);
+        AIProvider aiProvider =
+                mock(AIProvider.class);
 
-    AIServiceImpl service =
-            new AIServiceImpl(aiProvider);
+        when(aiProvider.generateResponse(
+                anyString(),
+                anyString()
+        )).thenReturn(
+                "not valid json"
+        );
 
-    service.generateCareerNextSteps(
-            "Backend Engineering",
-            20.0,
-            List.of("Java"),
-            List.of("SQL")
-    );
+        AIServiceImpl service =
+                new AIServiceImpl(aiProvider);
 
-   verify(aiProvider).generateResponse(
-        contains("source of truth"),
-        contains("Backend Engineering")
-);
-}
+        List<String> result =
+                service.generateCareerNextSteps(
+                        "Backend Engineering",
+                        20.0,
+                        List.of("Java"),
+                        List.of(
+                                "Spring Boot",
+                                "SQL"
+                        )
+                );
 
-@Test
-void shouldUseFallbackForInvalidNextStepsJson() {
+        assertEquals(
+                2,
+                result.size()
+        );
 
-    AIProvider aiProvider =
-            mock(AIProvider.class);
+        assertEquals(
+                "Develop your Spring Boot skills through focused study and a practical project.",
+                result.get(0)
+        );
 
-    when(aiProvider.generateResponse(
-            anyString(),
-            anyString()
-    )).thenReturn(
-            "not valid json"
-    );
+        assertEquals(
+                "Develop your SQL skills through focused study and a practical project.",
+                result.get(1)
+        );
+    }
 
-    AIServiceImpl service =
-            new AIServiceImpl(aiProvider);
+    @Test
+    void shouldUseFallbackWhenNextStepsFieldIsMissing() {
 
-    List<String> result =
-            service.generateCareerNextSteps(
-                    "Backend Engineering",
-                    20.0,
-                    List.of("Java"),
-                    List.of(
-                            "Spring Boot",
-                            "SQL"
-                    )
-            );
+        AIProvider aiProvider =
+                mock(AIProvider.class);
 
-    assertEquals(
-            2,
-            result.size()
-    );
+        when(aiProvider.generateResponse(
+                anyString(),
+                anyString()
+        )).thenReturn("""
+                {
+                  "message": "No suggestions"
+                }
+                """);
 
-    assertEquals(
-            "Develop your Spring Boot skills through focused study and a practical project.",
-            result.get(0)
-    );
+        AIServiceImpl service =
+                new AIServiceImpl(aiProvider);
 
-    assertEquals(
-            "Develop your SQL skills through focused study and a practical project.",
-            result.get(1)
-    );
-}
+        List<String> result =
+                service.generateCareerNextSteps(
+                        "Backend Engineering",
+                        20.0,
+                        List.of("Java"),
+                        List.of("SQL")
+                );
 
-@Test
-void shouldUseFallbackWhenNextStepsFieldIsMissing() {
+        assertEquals(
+                1,
+                result.size()
+        );
 
-    AIProvider aiProvider =
-            mock(AIProvider.class);
+        assertEquals(
+                "Develop your SQL skills through focused study and a practical project.",
+                result.get(0)
+        );
+    }
 
-    when(aiProvider.generateResponse(
-            anyString(),
-            anyString()
-    )).thenReturn("""
-            {
-              "message": "No suggestions"
-            }
-            """);
+    @Test
+    void shouldRejectInvalidNextStepsReadinessScore() {
 
-    AIServiceImpl service =
-            new AIServiceImpl(aiProvider);
+        AIProvider aiProvider =
+                mock(AIProvider.class);
 
-    List<String> result =
-            service.generateCareerNextSteps(
-                    "Backend Engineering",
-                    20.0,
-                    List.of("Java"),
-                    List.of("SQL")
-            );
+        AIServiceImpl service =
+                new AIServiceImpl(aiProvider);
 
-    assertEquals(
-            1,
-            result.size()
-    );
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> service.generateCareerNextSteps(
+                        "Backend Engineering",
+                        101.0,
+                        List.of("Java"),
+                        List.of("SQL")
+                )
+        );
 
-    assertEquals(
-            "Develop your SQL skills through focused study and a practical project.",
-            result.get(0)
-    );
-}
+        verifyNoInteractions(aiProvider);
+    }
 
-@Test
-void shouldRejectInvalidNextStepsReadinessScore() {
+    @Test
+    void shouldRejectNullNextStepsSkillLists() {
 
-    AIProvider aiProvider =
-            mock(AIProvider.class);
+        AIProvider aiProvider =
+                mock(AIProvider.class);
 
-    AIServiceImpl service =
-            new AIServiceImpl(aiProvider);
+        AIServiceImpl service =
+                new AIServiceImpl(aiProvider);
 
-    assertThrows(
-            IllegalArgumentException.class,
-            () -> service.generateCareerNextSteps(
-                    "Backend Engineering",
-                    101.0,
-                    List.of("Java"),
-                    List.of("SQL")
-            )
-    );
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> service.generateCareerNextSteps(
+                        "Backend Engineering",
+                        20.0,
+                        null,
+                        List.of("SQL")
+                )
+        );
 
-    verifyNoInteractions(aiProvider);
-}
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> service.generateCareerNextSteps(
+                        "Backend Engineering",
+                        20.0,
+                        List.of("Java"),
+                        null
+                )
+        );
 
-@Test
-void shouldRejectNullNextStepsSkillLists() {
+        verifyNoInteractions(aiProvider);
+    }
 
-    AIProvider aiProvider =
-            mock(AIProvider.class);
+    // -------------------------------------------------------------------------
+    // Career Guidance Tests
+    // -------------------------------------------------------------------------
 
-    AIServiceImpl service =
-            new AIServiceImpl(aiProvider);
+    @Test
+    void shouldCreateStructuredCareerGuidance() {
 
-    assertThrows(
-            IllegalArgumentException.class,
-            () -> service.generateCareerNextSteps(
-                    "Backend Engineering",
-                    20.0,
-                    null,
-                    List.of("SQL")
-            )
-    );
+        AIProvider aiProvider =
+                mock(AIProvider.class);
 
-    assertThrows(
-            IllegalArgumentException.class,
-            () -> service.generateCareerNextSteps(
-                    "Backend Engineering",
-                    20.0,
-                    List.of("Java"),
-                    null
-            )
-    );
+        when(aiProvider.generateResponse(
+                anyString(),
+                anyString()
+        )).thenReturn("""
+                {
+                  "learningAreas": [
+                    {
+                      "area": "REST API Development",
+                      "relatedSkills": ["REST APIs"],
+                      "reason": "Learn how to design and implement backend APIs."
+                    },
+                    {
+                      "area": "Containerization",
+                      "relatedSkills": ["Docker"],
+                      "reason": "Learn how to package backend applications."
+                    }
+                  ],
+                  "projectAreas": [
+                    {
+                      "area": "Backend REST API Project",
+                      "relatedSkills": ["REST APIs"],
+                      "reason": "Apply REST API concepts in a practical project."
+                    },
+                    {
+                      "area": "Dockerized Backend Project",
+                      "relatedSkills": ["Docker"],
+                      "reason": "Practice containerizing a backend application."
+                    }
+                  ],
+                  "roleTypes": [
+                    "Backend Developer",
+                    "Java Backend Developer"
+                  ],
+                  "shortTermGuidance": [
+                    "Learn REST API design and build a small Spring Boot API.",
+                    "Practice Docker by containerizing the backend project."
+                  ],
+                  "longTermGuidance": [
+                    "Build increasingly complex backend projects.",
+                    "Develop broader experience with backend engineering practices."
+                  ]
+                }
+                """);
 
-    verifyNoInteractions(aiProvider);
-}
+        AIServiceImpl service =
+                new AIServiceImpl(aiProvider);
+
+        CareerGuidanceResponse response =
+                service.generateCareerGuidance(
+                        "Backend Engineering",
+                        "Backend Engineering",
+                        List.of("Java", "Spring Boot", "SQL"),
+                        List.of("REST APIs", "Docker")
+                );
+
+        assertNotNull(response);
+
+        assertEquals(
+                2,
+                response.getLearningAreas().size()
+        );
+
+        assertEquals(
+                "REST API Development",
+                response.getLearningAreas()
+                        .get(0)
+                        .getArea()
+        );
+
+        assertEquals(
+                List.of("REST APIs"),
+                response.getLearningAreas()
+                        .get(0)
+                        .getRelatedSkills()
+        );
+
+        assertEquals(
+                2,
+                response.getProjectAreas().size()
+        );
+
+        assertEquals(
+                "Backend REST API Project",
+                response.getProjectAreas()
+                        .get(0)
+                        .getArea()
+        );
+
+        assertEquals(
+                2,
+                response.getRoleTypes().size()
+        );
+
+        assertTrue(
+                response.getRoleTypes()
+                        .contains("Backend Developer")
+        );
+
+        assertEquals(
+                2,
+                response.getShortTermGuidance().size()
+        );
+
+        assertEquals(
+                2,
+                response.getLongTermGuidance().size()
+        );
+    }
+
+    @Test
+    void shouldPassCareerGuidanceInformationToAIProvider() {
+
+        AIProvider aiProvider =
+                mock(AIProvider.class);
+
+        when(aiProvider.generateResponse(
+                anyString(),
+                anyString()
+        )).thenReturn("""
+                {
+                  "learningAreas": [
+                    {
+                      "area": "REST API Development",
+                      "relatedSkills": ["REST APIs"],
+                      "reason": "Build API skills."
+                    }
+                  ],
+                  "projectAreas": [
+                    {
+                      "area": "REST API Project",
+                      "relatedSkills": ["REST APIs"],
+                      "reason": "Apply API skills."
+                    }
+                  ],
+                  "roleTypes": [
+                    "Backend Developer"
+                  ],
+                  "shortTermGuidance": [
+                    "Practice REST APIs."
+                  ],
+                  "longTermGuidance": [
+                    "Build larger backend projects."
+                  ]
+                }
+                """);
+
+        AIServiceImpl service =
+                new AIServiceImpl(aiProvider);
+
+        service.generateCareerGuidance(
+                "Backend Engineering",
+                "Full Stack Development",
+                List.of("Java", "Spring Boot"),
+                List.of("REST APIs", "React")
+        );
+
+        verify(aiProvider).generateResponse(
+                contains("source of truth"),
+                contains("Full Stack Development")
+        );
+
+        verify(aiProvider).generateResponse(
+                anyString(),
+                contains("REST APIs")
+        );
+    }
+
+    @Test
+    void shouldUseFallbackForInvalidCareerGuidanceJson() {
+
+        AIProvider aiProvider =
+                mock(AIProvider.class);
+
+        when(aiProvider.generateResponse(
+                anyString(),
+                anyString()
+        )).thenReturn(
+                "not valid json"
+        );
+
+        AIServiceImpl service =
+                new AIServiceImpl(aiProvider);
+
+        CareerGuidanceResponse response =
+                service.generateCareerGuidance(
+                        "Backend Engineering",
+                        "Backend Engineering",
+                        List.of("Java", "Spring Boot"),
+                        List.of("REST APIs", "Docker")
+                );
+
+        assertNotNull(response);
+
+        assertEquals(
+                2,
+                response.getLearningAreas().size()
+        );
+
+        assertEquals(
+                "REST APIs Development",
+                response.getLearningAreas()
+                        .get(0)
+                        .getArea()
+        );
+
+        assertEquals(
+                "Docker Development",
+                response.getLearningAreas()
+                        .get(1)
+                        .getArea()
+        );
+
+        assertEquals(
+                2,
+                response.getProjectAreas().size()
+        );
+
+        assertEquals(
+                1,
+                response.getRoleTypes().size()
+        );
+
+        assertEquals(
+                "Entry-level role aligned with the target career path",
+                response.getRoleTypes().get(0)
+        );
+
+        assertFalse(
+                response.getShortTermGuidance().isEmpty()
+        );
+
+        assertFalse(
+                response.getLongTermGuidance().isEmpty()
+        );
+    }
+
+    @Test
+    void shouldRejectUnsupportedRelatedSkillAndUseFallback() {
+
+        AIProvider aiProvider =
+                mock(AIProvider.class);
+
+        when(aiProvider.generateResponse(
+                anyString(),
+                anyString()
+        )).thenReturn("""
+                {
+                  "learningAreas": [
+                    {
+                      "area": "Python Development",
+                      "relatedSkills": ["Python"],
+                      "reason": "Learn Python."
+                    }
+                  ],
+                  "projectAreas": [
+                    {
+                      "area": "Python Project",
+                      "relatedSkills": ["Python"],
+                      "reason": "Build a Python project."
+                    }
+                  ],
+                  "roleTypes": [
+                    "Backend Developer"
+                  ],
+                  "shortTermGuidance": [
+                    "Learn Python."
+                  ],
+                  "longTermGuidance": [
+                    "Build backend projects."
+                  ]
+                }
+                """);
+
+        AIServiceImpl service =
+                new AIServiceImpl(aiProvider);
+
+        CareerGuidanceResponse response =
+                service.generateCareerGuidance(
+                        "Backend Engineering",
+                        "Backend Engineering",
+                        List.of("Java", "Spring Boot"),
+                        List.of("REST APIs", "Docker")
+                );
+
+        assertNotNull(response);
+
+        assertEquals(
+                "REST APIs Development",
+                response.getLearningAreas()
+                        .get(0)
+                        .getArea()
+        );
+
+        assertEquals(
+                "Docker Development",
+                response.getLearningAreas()
+                        .get(1)
+                        .getArea()
+        );
+
+        assertEquals(
+                List.of("REST APIs"),
+                response.getLearningAreas()
+                        .get(0)
+                        .getRelatedSkills()
+        );
+    }
+
+    @Test
+    void shouldRejectNullMatchedSkillsForCareerGuidance() {
+
+        AIProvider aiProvider =
+                mock(AIProvider.class);
+
+        AIServiceImpl service =
+                new AIServiceImpl(aiProvider);
+
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> service.generateCareerGuidance(
+                        "Backend Engineering",
+                        "Backend Engineering",
+                        null,
+                        List.of("REST APIs")
+                )
+        );
+
+        verifyNoInteractions(aiProvider);
+    }
+
+    @Test
+    void shouldRejectNullMissingSkillsForCareerGuidance() {
+
+        AIProvider aiProvider =
+                mock(AIProvider.class);
+
+        AIServiceImpl service =
+                new AIServiceImpl(aiProvider);
+
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> service.generateCareerGuidance(
+                        "Backend Engineering",
+                        "Backend Engineering",
+                        List.of("Java"),
+                        null
+                )
+        );
+
+        verifyNoInteractions(aiProvider);
+    }
+
+    @Test
+    void shouldRejectBlankCurrentCareerPathForCareerGuidance() {
+
+        AIProvider aiProvider =
+                mock(AIProvider.class);
+
+        AIServiceImpl service =
+                new AIServiceImpl(aiProvider);
+
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> service.generateCareerGuidance(
+                        "",
+                        "Backend Engineering",
+                        List.of("Java"),
+                        List.of("REST APIs")
+                )
+        );
+
+        verifyNoInteractions(aiProvider);
+    }
+
+    @Test
+    void shouldRejectBlankTargetCareerPathForCareerGuidance() {
+
+        AIProvider aiProvider =
+                mock(AIProvider.class);
+
+        AIServiceImpl service =
+                new AIServiceImpl(aiProvider);
+
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> service.generateCareerGuidance(
+                        "Backend Engineering",
+                        "",
+                        List.of("Java"),
+                        List.of("REST APIs")
+                )
+        );
+
+        verifyNoInteractions(aiProvider);
+    }
+
+    @Test
+    void shouldUseFallbackForMalformedLearningAreas() {
+
+        AIProvider aiProvider =
+                mock(AIProvider.class);
+
+        when(aiProvider.generateResponse(
+                anyString(),
+                anyString()
+        )).thenReturn("""
+                {
+                  "learningAreas": "REST API Development",
+                  "projectAreas": [
+                    {
+                      "area": "REST API Project",
+                      "relatedSkills": ["REST APIs"],
+                      "reason": "Apply REST API skills."
+                    }
+                  ],
+                  "roleTypes": [
+                    "Backend Developer"
+                  ],
+                  "shortTermGuidance": [
+                    "Practice REST APIs."
+                  ],
+                  "longTermGuidance": [
+                    "Build backend projects."
+                  ]
+                }
+                """);
+
+        AIServiceImpl service =
+                new AIServiceImpl(aiProvider);
+
+        CareerGuidanceResponse response =
+                service.generateCareerGuidance(
+                        "Backend Engineering",
+                        "Backend Engineering",
+                        List.of("Java"),
+                        List.of("REST APIs")
+                );
+
+        assertNotNull(response);
+
+        assertEquals(
+                1,
+                response.getLearningAreas().size()
+        );
+
+        assertEquals(
+                "REST APIs Development",
+                response.getLearningAreas()
+                        .get(0)
+                        .getArea()
+        );
+
+        assertEquals(
+                List.of("REST APIs"),
+                response.getLearningAreas()
+                        .get(0)
+                        .getRelatedSkills()
+        );
+    }
+
+    @Test
+    void shouldUseFallbackForMalformedProjectAreas() {
+
+        AIProvider aiProvider =
+                mock(AIProvider.class);
+
+        when(aiProvider.generateResponse(
+                anyString(),
+                anyString()
+        )).thenReturn("""
+                {
+                  "learningAreas": [
+                    {
+                      "area": "REST API Development",
+                      "relatedSkills": ["REST APIs"],
+                      "reason": "Build API skills."
+                    }
+                  ],
+                  "projectAreas": "REST API Project",
+                  "roleTypes": [
+                    "Backend Developer"
+                  ],
+                  "shortTermGuidance": [
+                    "Practice REST APIs."
+                  ],
+                  "longTermGuidance": [
+                    "Build backend projects."
+                  ]
+                }
+                """);
+
+        AIServiceImpl service =
+                new AIServiceImpl(aiProvider);
+
+        CareerGuidanceResponse response =
+                service.generateCareerGuidance(
+                        "Backend Engineering",
+                        "Backend Engineering",
+                        List.of("Java"),
+                        List.of("REST APIs")
+                );
+
+        assertNotNull(response);
+
+        assertEquals(
+                1,
+                response.getProjectAreas().size()
+        );
+
+        assertEquals(
+                "REST APIs Practical Project",
+                response.getProjectAreas()
+                        .get(0)
+                        .getArea()
+        );
+    }
+
+    @Test
+    void shouldUseFallbackWhenNoMissingSkillsExist() {
+
+        AIProvider aiProvider =
+                mock(AIProvider.class);
+
+        when(aiProvider.generateResponse(
+                anyString(),
+                anyString()
+        )).thenReturn(
+                "not valid json"
+        );
+
+        AIServiceImpl service =
+                new AIServiceImpl(aiProvider);
+
+        CareerGuidanceResponse response =
+                service.generateCareerGuidance(
+                        "Backend Engineering",
+                        "Backend Engineering",
+                        List.of("Java", "Spring Boot"),
+                        List.of()
+                );
+
+        assertNotNull(response);
+
+        assertFalse(
+                response.getLearningAreas().isEmpty()
+        );
+
+        assertEquals(
+                "Core Skill Development",
+                response.getLearningAreas()
+                        .get(0)
+                        .getArea()
+        );
+
+        assertEquals(
+                List.of("Java"),
+                response.getLearningAreas()
+                        .get(0)
+                        .getRelatedSkills()
+        );
+
+        assertFalse(
+                response.getProjectAreas().isEmpty()
+        );
+
+        assertEquals(
+                "Practical Career Project",
+                response.getProjectAreas()
+                        .get(0)
+                        .getArea()
+        );
+
+        assertFalse(
+                response.getShortTermGuidance().isEmpty()
+        );
+
+        assertFalse(
+                response.getLongTermGuidance().isEmpty()
+        );
+    }
 }

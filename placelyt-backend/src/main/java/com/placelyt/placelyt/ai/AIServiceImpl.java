@@ -3,7 +3,10 @@ package com.placelyt.placelyt.ai;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.placelyt.placelyt.dto.CareerAIResponse;
+import com.placelyt.placelyt.dto.CareerGuidanceResponse;
 import com.placelyt.placelyt.dto.CareerPathAlternativeResponse;
+import com.placelyt.placelyt.dto.LearningAreaResponse;
+import com.placelyt.placelyt.dto.ProjectAreaResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -420,6 +423,434 @@ public class AIServiceImpl implements AIService {
         }
     }
 
+    @Override
+    public List<String> generateCareerNextSteps(
+            String careerPathName,
+            double readinessScore,
+            List<String> matchedSkills,
+            List<String> missingSkills) {
+
+        if (careerPathName == null ||
+                careerPathName.isBlank()) {
+
+            throw new IllegalArgumentException(
+                    "Career path name cannot be blank"
+            );
+        }
+
+        if (Double.isNaN(readinessScore) ||
+                Double.isInfinite(readinessScore) ||
+                readinessScore < 0.0 ||
+                readinessScore > 100.0) {
+
+            throw new IllegalArgumentException(
+                    "Readiness score must be between 0 and 100"
+            );
+        }
+
+        if (matchedSkills == null ||
+                missingSkills == null) {
+
+            throw new IllegalArgumentException(
+                    "Skill lists cannot be null"
+            );
+        }
+
+        String systemPrompt = """
+                You are Placelyt's career intelligence assistant.
+
+                Your task is to provide personalized, actionable
+                next-step suggestions for a student pursuing a
+                career path.
+
+                Placelyt has already calculated the student's
+                readiness score, matched skills, and missing skills.
+
+                The deterministic information provided by Placelyt
+                is the source of truth.
+
+                Do NOT:
+
+                - invent student skills,
+                - invent experience,
+                - invent qualifications,
+                - invent achievements,
+                - claim that the student has completed something
+                  that is not supplied,
+                - change the readiness score,
+                - change matched skills,
+                - change missing skills,
+                - guarantee employment,
+                - predict employment outcomes.
+
+                Suggestions must be based only on the supplied
+                career path, readiness score, matched skills, and
+                missing skills.
+
+                Prioritize actions that address missing skills while
+                also building on matched skills.
+
+                Suggestions should be practical for a student and
+                specific enough to act upon.
+
+                Return ONLY valid JSON.
+
+                The JSON must follow exactly this structure:
+
+                {
+                  "nextSteps": [
+                    "actionable next step"
+                  ]
+                }
+
+                Rules:
+
+                - Return between 1 and 10 next steps.
+                - Every next step must be a non-empty string.
+                - Every next step must be actionable.
+                - Do not invent information about the student.
+                - Do not introduce unsupported student skills.
+                - Do not repeat the same suggestion.
+                - Do not include Markdown.
+                - Do not include code fences.
+                """;
+
+        String userPrompt = """
+                Career Path: %s
+
+                Readiness Score: %.1f%%
+
+                Matched Skills:
+                %s
+
+                Missing Skills:
+                %s
+
+                Provide personalized next-step suggestions.
+
+                Focus first on meaningful actions related to the
+                missing skills, then suggest ways to strengthen
+                the matched skills where appropriate.
+
+                Return ONLY the required JSON object.
+                """.formatted(
+                careerPathName,
+                readinessScore,
+                matchedSkills.isEmpty()
+                        ? "None"
+                        : String.join(", ", matchedSkills),
+                missingSkills.isEmpty()
+                        ? "None"
+                        : String.join(", ", missingSkills)
+        );
+
+        String aiResponse =
+                aiProvider.generateResponse(
+                        systemPrompt,
+                        userPrompt
+                );
+
+        try {
+
+            JsonNode root =
+                    objectMapper.readTree(aiResponse);
+
+            if (root == null ||
+                    !root.isObject()) {
+
+                return createNextStepsFallback(
+                        matchedSkills,
+                        missingSkills
+                );
+            }
+
+            JsonNode nextStepsNode =
+                    root.get("nextSteps");
+
+            if (nextStepsNode == null ||
+                    !nextStepsNode.isArray() ||
+                    nextStepsNode.isEmpty() ||
+                    nextStepsNode.size() > 10) {
+
+                return createNextStepsFallback(
+                        matchedSkills,
+                        missingSkills
+                );
+            }
+
+            List<String> nextSteps =
+                    new ArrayList<>();
+
+            for (JsonNode item : nextStepsNode) {
+
+                if (!item.isTextual()) {
+
+                    return createNextStepsFallback(
+                            matchedSkills,
+                            missingSkills
+                    );
+                }
+
+                String nextStep =
+                        item.asText().trim();
+
+                if (nextStep.isBlank() ||
+                        nextStep.length() > 500) {
+
+                    return createNextStepsFallback(
+                            matchedSkills,
+                            missingSkills
+                    );
+                }
+
+                boolean duplicate =
+                        nextSteps.stream()
+                                .anyMatch(existing ->
+                                        existing.equalsIgnoreCase(
+                                                nextStep
+                                        )
+                                );
+
+                if (duplicate) {
+
+                    return createNextStepsFallback(
+                            matchedSkills,
+                            missingSkills
+                    );
+                }
+
+                nextSteps.add(nextStep);
+            }
+
+            return nextSteps;
+
+        } catch (Exception exception) {
+
+            logger.warn(
+                    "Invalid career next-step AI response; using fallback",
+                    exception
+            );
+
+            return createNextStepsFallback(
+                    matchedSkills,
+                    missingSkills
+            );
+        }
+    }
+
+    @Override
+    public CareerGuidanceResponse generateCareerGuidance(
+            String currentCareerPath,
+            String targetCareerPath,
+            List<String> matchedSkills,
+            List<String> missingSkills) {
+
+        if (currentCareerPath == null ||
+                currentCareerPath.isBlank()) {
+
+            throw new IllegalArgumentException(
+                    "Current career path cannot be blank"
+            );
+        }
+
+        if (targetCareerPath == null ||
+                targetCareerPath.isBlank()) {
+
+            throw new IllegalArgumentException(
+                    "Target career path cannot be blank"
+            );
+        }
+
+        if (matchedSkills == null ||
+                missingSkills == null) {
+
+            throw new IllegalArgumentException(
+                    "Skill lists cannot be null"
+            );
+        }
+
+        String systemPrompt = """
+                You are Placelyt's career intelligence assistant.
+
+                Your task is to transform deterministic career-path
+                information into practical career guidance.
+
+                Placelyt has already determined:
+                - the student's current career direction,
+                - the student's target career direction,
+                - matched skills,
+                - missing skills.
+
+                The deterministic information provided by Placelyt
+                is the source of truth.
+
+                Do NOT:
+                - invent student skills,
+                - invent experience,
+                - invent qualifications,
+                - invent achievements,
+                - invent additional skill gaps,
+                - change the provided matched skills,
+                - claim that a missing skill is already possessed,
+                - introduce unrelated technologies,
+                - guarantee employment,
+                - predict employment outcomes.
+
+                Learning areas must be based primarily on the
+                provided missing skills.
+
+                Project areas must provide practical ways to apply
+                the provided missing skills while building on the
+                provided matched skills where appropriate.
+
+                Role types must be relevant to the target career path
+                and must not require unsupported skills.
+
+                Short-term guidance should focus on immediate,
+                practical actions that address the current skill gaps.
+
+                Long-term guidance should describe broader progression
+                toward the target career path without guaranteeing
+                a particular career outcome.
+
+                Return ONLY valid JSON.
+
+                The JSON must follow exactly this structure:
+
+                {
+                  "learningAreas": [
+                    {
+                      "area": "learning area",
+                      "relatedSkills": ["skill"],
+                      "reason": "why this area matters"
+                    }
+                  ],
+                  "projectAreas": [
+                    {
+                      "area": "project area",
+                      "relatedSkills": ["skill"],
+                      "reason": "why this project area is useful"
+                    }
+                  ],
+                  "roleTypes": [
+                    "relevant role type"
+                  ],
+                  "shortTermGuidance": [
+                    "short-term action"
+                  ],
+                  "longTermGuidance": [
+                    "long-term direction"
+                  ]
+                }
+
+                Rules:
+
+                - learningAreas must contain 1 to 10 items.
+                - projectAreas must contain 1 to 10 items.
+                - roleTypes must contain 1 to 10 items.
+                - shortTermGuidance must contain 1 to 10 items.
+                - longTermGuidance must contain 1 to 10 items.
+                - Every string must be non-empty.
+                - relatedSkills must contain only supplied matched or
+                  missing skills.
+                - Missing skills must not be replaced by invented skills.
+                - Do not include Markdown.
+                - Do not include code fences.
+                - Do not add fields outside the required structure.
+                """;
+
+        String userPrompt = """
+                Current Career Direction:
+                %s
+
+                Target Career Direction:
+                %s
+
+                Matched Skills:
+                %s
+
+                Missing Skills:
+                %s
+
+                Use the matched skills as the student's existing
+                foundation.
+
+                Use the missing skills as the primary basis for
+                learning areas, project areas, and short-term
+                development guidance.
+
+                Provide practical guidance that helps the student
+                progress from the current direction toward the
+                target direction.
+
+                Return ONLY the required JSON object.
+                """.formatted(
+                currentCareerPath,
+                targetCareerPath,
+                matchedSkills.isEmpty()
+                        ? "None"
+                        : String.join(", ", matchedSkills),
+                missingSkills.isEmpty()
+                        ? "None"
+                        : String.join(", ", missingSkills)
+        );
+
+        long startTime =
+                System.currentTimeMillis();
+
+        logger.info(
+                "Starting AI career guidance for currentPath='{}', targetPath='{}'",
+                currentCareerPath,
+                targetCareerPath
+        );
+
+        try {
+
+            String aiResponse =
+                    aiProvider.generateResponse(
+                            systemPrompt,
+                            userPrompt
+                    );
+
+            CareerGuidanceResponse response =
+                    parseAndValidateCareerGuidanceResponse(
+                            aiResponse,
+                            matchedSkills,
+                            missingSkills
+                    );
+
+            long duration =
+                    System.currentTimeMillis() - startTime;
+
+            logger.info(
+                    "AI career guidance completed successfully " +
+                    "for targetPath='{}' in {} ms",
+                    targetCareerPath,
+                    duration
+            );
+
+            return response;
+
+        } catch (Exception exception) {
+
+            long duration =
+                    System.currentTimeMillis() - startTime;
+
+            logger.warn(
+                    "AI career guidance failed for targetPath='{}' " +
+                    "after {} ms. Using deterministic fallback. Reason={}",
+                    targetCareerPath,
+                    duration,
+                    exception.getMessage()
+            );
+
+            return createCareerGuidanceFallback(
+                    matchedSkills,
+                    missingSkills
+            );
+        }
+    }
+
     private CareerAIResponse parseAndValidateResponse(
             String aiResponse) {
 
@@ -614,6 +1045,327 @@ public class AIServiceImpl implements AIService {
         }
     }
 
+    private CareerGuidanceResponse parseAndValidateCareerGuidanceResponse(
+            String aiResponse,
+            List<String> matchedSkills,
+            List<String> missingSkills) {
+
+        if (aiResponse == null ||
+                aiResponse.isBlank()) {
+
+            throw new IllegalStateException(
+                    "AI provider returned an empty response"
+            );
+        }
+
+        try {
+
+            JsonNode root =
+                    objectMapper.readTree(aiResponse);
+
+            if (root == null ||
+                    !root.isObject()) {
+
+                throw new IllegalStateException(
+                        "AI career guidance response must be a JSON object"
+                );
+            }
+
+            JsonNode learningAreasNode =
+                    root.get("learningAreas");
+
+            JsonNode projectAreasNode =
+                    root.get("projectAreas");
+
+            JsonNode roleTypesNode =
+                    root.get("roleTypes");
+
+            JsonNode shortTermNode =
+                    root.get("shortTermGuidance");
+
+            JsonNode longTermNode =
+                    root.get("longTermGuidance");
+
+            validateObjectArray(
+                    learningAreasNode,
+                    "learningAreas",
+                    10
+            );
+
+            validateObjectArray(
+                    projectAreasNode,
+                    "projectAreas",
+                    10
+            );
+
+            validateStringArray(
+                    roleTypesNode,
+                    "roleTypes"
+            );
+
+            validateStringArray(
+                    shortTermNode,
+                    "shortTermGuidance"
+            );
+
+            validateStringArray(
+                    longTermNode,
+                    "longTermGuidance"
+            );
+
+            if (roleTypesNode.isEmpty() ||
+                    shortTermNode.isEmpty() ||
+                    longTermNode.isEmpty()) {
+
+                throw new IllegalStateException(
+                        "Career guidance string arrays cannot be empty"
+                );
+            }
+
+            List<LearningAreaResponse> learningAreas =
+                    parseLearningAreas(
+                            learningAreasNode,
+                            matchedSkills,
+                            missingSkills
+                    );
+
+            List<ProjectAreaResponse> projectAreas =
+                    parseProjectAreas(
+                            projectAreasNode,
+                            matchedSkills,
+                            missingSkills
+                    );
+
+            List<String> roleTypes =
+                    parseStringArray(roleTypesNode);
+
+            List<String> shortTermGuidance =
+                    parseStringArray(shortTermNode);
+
+            List<String> longTermGuidance =
+                    parseStringArray(longTermNode);
+
+            return new CareerGuidanceResponse(
+                    learningAreas,
+                    projectAreas,
+                    roleTypes,
+                    shortTermGuidance,
+                    longTermGuidance
+            );
+
+        } catch (IllegalStateException exception) {
+
+            throw exception;
+
+        } catch (Exception exception) {
+
+            throw new IllegalStateException(
+                    "Failed to parse structured career guidance response",
+                    exception
+            );
+        }
+    }
+
+    private List<LearningAreaResponse> parseLearningAreas(
+            JsonNode arrayNode,
+            List<String> matchedSkills,
+            List<String> missingSkills) {
+
+        List<LearningAreaResponse> result =
+                new ArrayList<>();
+
+        for (JsonNode item : arrayNode) {
+
+            JsonNode areaNode =
+                    item.get("area");
+
+            JsonNode relatedSkillsNode =
+                    item.get("relatedSkills");
+
+            JsonNode reasonNode =
+                    item.get("reason");
+
+            validateStringField(
+                    areaNode,
+                    "learning area"
+            );
+
+            validateStringField(
+                    reasonNode,
+                    "learning area reason"
+            );
+
+            validateStringArray(
+                    relatedSkillsNode,
+                    "learning area relatedSkills"
+            );
+
+            List<String> relatedSkills =
+                    parseStringArray(relatedSkillsNode);
+
+            validateRelatedSkills(
+                    relatedSkills,
+                    matchedSkills,
+                    missingSkills
+            );
+
+            result.add(
+                    new LearningAreaResponse(
+                            areaNode.asText().trim(),
+                            relatedSkills,
+                            reasonNode.asText().trim()
+                    )
+            );
+        }
+
+        return result;
+    }
+
+    private List<ProjectAreaResponse> parseProjectAreas(
+            JsonNode arrayNode,
+            List<String> matchedSkills,
+            List<String> missingSkills) {
+
+        List<ProjectAreaResponse> result =
+                new ArrayList<>();
+
+        for (JsonNode item : arrayNode) {
+
+            JsonNode areaNode =
+                    item.get("area");
+
+            JsonNode relatedSkillsNode =
+                    item.get("relatedSkills");
+
+            JsonNode reasonNode =
+                    item.get("reason");
+
+            validateStringField(
+                    areaNode,
+                    "project area"
+            );
+
+            validateStringField(
+                    reasonNode,
+                    "project area reason"
+            );
+
+            validateStringArray(
+                    relatedSkillsNode,
+                    "project area relatedSkills"
+            );
+
+            List<String> relatedSkills =
+                    parseStringArray(relatedSkillsNode);
+
+            validateRelatedSkills(
+                    relatedSkills,
+                    matchedSkills,
+                    missingSkills
+            );
+
+            result.add(
+                    new ProjectAreaResponse(
+                            areaNode.asText().trim(),
+                            relatedSkills,
+                            reasonNode.asText().trim()
+                    )
+            );
+        }
+
+        return result;
+    }
+
+    private void validateObjectArray(
+            JsonNode field,
+            String fieldName,
+            int maximumSize) {
+
+        if (field == null ||
+                !field.isArray() ||
+                field.isEmpty() ||
+                field.size() > maximumSize) {
+
+            throw new IllegalStateException(
+                    "AI response field '" +
+                    fieldName +
+                    "' must be a non-empty array with at most " +
+                    maximumSize +
+                    " items"
+            );
+        }
+
+        for (JsonNode item : field) {
+
+            if (item == null ||
+                    !item.isObject()) {
+
+                throw new IllegalStateException(
+                        "AI response field '" +
+                        fieldName +
+                        "' must contain only objects"
+                );
+            }
+        }
+    }
+
+    private void validateRelatedSkills(
+            List<String> relatedSkills,
+            List<String> matchedSkills,
+            List<String> missingSkills) {
+
+        if (relatedSkills == null ||
+                relatedSkills.isEmpty()) {
+
+            throw new IllegalStateException(
+                    "Related skills cannot be empty"
+            );
+        }
+
+        for (String relatedSkill : relatedSkills) {
+
+            boolean supported =
+                    containsIgnoreCase(
+                            matchedSkills,
+                            relatedSkill
+                    ) ||
+                    containsIgnoreCase(
+                            missingSkills,
+                            relatedSkill
+                    );
+
+            if (!supported) {
+
+                throw new IllegalStateException(
+                        "AI introduced unsupported related skill: " +
+                        relatedSkill
+                );
+            }
+        }
+    }
+
+    private boolean containsIgnoreCase(
+            List<String> values,
+            String target) {
+
+        if (values == null ||
+                target == null) {
+
+            return false;
+        }
+
+        for (String value : values) {
+
+            if (value != null &&
+                    value.equalsIgnoreCase(target.trim())) {
+
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     private void validateStringField(
             JsonNode field,
             String fieldName) {
@@ -624,8 +1376,8 @@ public class AIServiceImpl implements AIService {
 
             throw new IllegalStateException(
                     "AI response field '" +
-                            fieldName +
-                            "' must be a non-empty string"
+                    fieldName +
+                    "' must be a non-empty string"
             );
         }
     }
@@ -639,8 +1391,8 @@ public class AIServiceImpl implements AIService {
 
             throw new IllegalStateException(
                     "AI response field '" +
-                            fieldName +
-                            "' must be an array"
+                    fieldName +
+                    "' must be an array"
             );
         }
 
@@ -651,9 +1403,9 @@ public class AIServiceImpl implements AIService {
 
                 throw new IllegalStateException(
                         "AI response field '" +
-                                fieldName +
-                                "' must contain only " +
-                                "non-empty strings"
+                        fieldName +
+                        "' must contain only " +
+                        "non-empty strings"
                 );
             }
         }
@@ -667,7 +1419,9 @@ public class AIServiceImpl implements AIService {
 
         for (JsonNode item : arrayNode) {
 
-            values.add(item.asText());
+            values.add(
+                    item.asText().trim()
+            );
         }
 
         return values;
@@ -744,6 +1498,124 @@ public class AIServiceImpl implements AIService {
         );
     }
 
+    private CareerGuidanceResponse createCareerGuidanceFallback(
+            List<String> matchedSkills,
+            List<String> missingSkills) {
+
+        List<LearningAreaResponse> learningAreas =
+                new ArrayList<>();
+
+        List<ProjectAreaResponse> projectAreas =
+                new ArrayList<>();
+
+        List<String> shortTermGuidance =
+                new ArrayList<>();
+
+        List<String> longTermGuidance =
+                new ArrayList<>();
+
+        for (String skill : missingSkills) {
+
+            if (skill == null ||
+                    skill.isBlank()) {
+                continue;
+            }
+
+            String trimmedSkill =
+                    skill.trim();
+
+            learningAreas.add(
+                    new LearningAreaResponse(
+                            trimmedSkill + " Development",
+                            List.of(trimmedSkill),
+                            "Develop practical knowledge and confidence in " +
+                                    trimmedSkill +
+                                    " as part of the target career path."
+                    )
+            );
+
+            projectAreas.add(
+                    new ProjectAreaResponse(
+                            trimmedSkill + " Practical Project",
+                            List.of(trimmedSkill),
+                            "Build a practical project that applies " +
+                                    trimmedSkill +
+                                    " in a realistic development scenario."
+                    )
+            );
+
+            shortTermGuidance.add(
+                    "Study and practice " +
+                            trimmedSkill +
+                            " through a focused learning exercise."
+            );
+
+            if (learningAreas.size() >= 10) {
+                break;
+            }
+        }
+
+        if (learningAreas.isEmpty()) {
+
+            String foundationSkill =
+                    matchedSkills.isEmpty()
+                            ? "the target career path"
+                            : matchedSkills.get(0);
+
+            learningAreas.add(
+                    new LearningAreaResponse(
+                            "Core Skill Development",
+                            matchedSkills.isEmpty()
+                                    ? List.of()
+                                    : List.of(foundationSkill),
+                            "Continue strengthening the existing foundation " +
+                                    "through deeper practical learning."
+                    )
+            );
+
+            projectAreas.add(
+                    new ProjectAreaResponse(
+                            "Practical Career Project",
+                            matchedSkills.isEmpty()
+                                    ? List.of()
+                                    : List.of(foundationSkill),
+                            "Build a practical project aligned with the target " +
+                                    "career direction."
+                    )
+            );
+
+            shortTermGuidance.add(
+                    "Strengthen your existing skills through focused practice " +
+                            "and a practical project."
+            );
+        }
+
+        longTermGuidance.add(
+                "Continue building practical experience across the skills " +
+                        "relevant to the target career direction."
+        );
+
+        longTermGuidance.add(
+                "Gradually take on more complex projects as your skill " +
+                        "foundation develops."
+        );
+
+        List<String> roleTypes =
+                new ArrayList<>();
+
+        roleTypes.add(
+                "Entry-level role aligned with the target career path"
+        );
+
+        return new CareerGuidanceResponse(
+                learningAreas,
+                projectAreas,
+                roleTypes,
+                shortTermGuidance,
+                longTermGuidance
+        );
+    }
+
     private List<CareerPathAlternativeResponse>
     createAlternativeFallbackResponse(
             List<CareerPathAlternativeResponse> alternatives) {
@@ -784,6 +1656,62 @@ public class AIServiceImpl implements AIService {
                             alternative.getMatchedSkills(),
                             alternative.getMissingSkills()
                     )
+            );
+        }
+
+        return fallback;
+    }
+
+    private List<String> createNextStepsFallback(
+            List<String> matchedSkills,
+            List<String> missingSkills) {
+
+        List<String> fallback =
+                new ArrayList<>();
+
+        for (String skill : missingSkills) {
+
+            if (skill == null ||
+                    skill.isBlank()) {
+                continue;
+            }
+
+            fallback.add(
+                    "Develop your " +
+                            skill +
+                            " skills through focused study and a practical project."
+            );
+
+            if (fallback.size() >= 10) {
+                break;
+            }
+        }
+
+        if (fallback.isEmpty()) {
+
+            for (String skill : matchedSkills) {
+
+                if (skill == null ||
+                        skill.isBlank()) {
+                    continue;
+                }
+
+                fallback.add(
+                        "Strengthen your " +
+                                skill +
+                                " skills through deeper practice and project work."
+                );
+
+                if (fallback.size() >= 10) {
+                    break;
+                }
+            }
+        }
+
+        if (fallback.isEmpty()) {
+
+            fallback.add(
+                    "Build practical projects aligned with the target career path."
             );
         }
 
@@ -1008,275 +1936,4 @@ public class AIServiceImpl implements AIService {
             );
         }
     }
-
-    @Override
-public List<String> generateCareerNextSteps(
-        String careerPathName,
-        double readinessScore,
-        List<String> matchedSkills,
-        List<String> missingSkills) {
-
-    if (careerPathName == null ||
-            careerPathName.isBlank()) {
-
-        throw new IllegalArgumentException(
-                "Career path name cannot be blank"
-        );
-    }
-
-    if (Double.isNaN(readinessScore) ||
-            Double.isInfinite(readinessScore) ||
-            readinessScore < 0.0 ||
-            readinessScore > 100.0) {
-
-        throw new IllegalArgumentException(
-                "Readiness score must be between 0 and 100"
-        );
-    }
-
-    if (matchedSkills == null ||
-            missingSkills == null) {
-
-        throw new IllegalArgumentException(
-                "Skill lists cannot be null"
-        );
-    }
-
-    String systemPrompt = """
-            You are Placelyt's career intelligence assistant.
-
-            Your task is to provide personalized, actionable
-            next-step suggestions for a student pursuing a
-            career path.
-
-            Placelyt has already calculated the student's
-            readiness score, matched skills, and missing skills.
-
-            The deterministic information provided by Placelyt
-            is the source of truth.
-
-            Do NOT:
-
-            - invent student skills,
-            - invent experience,
-            - invent qualifications,
-            - invent achievements,
-            - claim that the student has completed something
-              that is not supplied,
-            - change the readiness score,
-            - change matched skills,
-            - change missing skills,
-            - guarantee employment,
-            - predict employment outcomes.
-
-            Suggestions must be based only on the supplied
-            career path, readiness score, matched skills, and
-            missing skills.
-
-            Prioritize actions that address missing skills while
-            also building on matched skills.
-
-            Suggestions should be practical for a student and
-            specific enough to act upon.
-
-            Return ONLY valid JSON.
-
-            The JSON must follow exactly this structure:
-
-            {
-              "nextSteps": [
-                "actionable next step"
-              ]
-            }
-
-            Rules:
-
-            - Return between 1 and 10 next steps.
-            - Every next step must be a non-empty string.
-            - Every next step must be actionable.
-            - Do not invent information about the student.
-            - Do not introduce unsupported student skills.
-            - Do not repeat the same suggestion.
-            - Do not include Markdown.
-            - Do not include code fences.
-            """;
-
-    String userPrompt = """
-            Career Path: %s
-
-            Readiness Score: %.1f%%
-
-            Matched Skills:
-            %s
-
-            Missing Skills:
-            %s
-
-            Provide personalized next-step suggestions.
-
-            Focus first on meaningful actions related to the
-            missing skills, then suggest ways to strengthen
-            the matched skills where appropriate.
-
-            Return ONLY the required JSON object.
-            """.formatted(
-            careerPathName,
-            readinessScore,
-            matchedSkills.isEmpty()
-                    ? "None"
-                    : String.join(", ", matchedSkills),
-            missingSkills.isEmpty()
-                    ? "None"
-                    : String.join(", ", missingSkills)
-    );
-
-    String aiResponse =
-            aiProvider.generateResponse(
-                    systemPrompt,
-                    userPrompt
-            );
-
-    try {
-
-        JsonNode root =
-                objectMapper.readTree(aiResponse);
-
-        if (root == null ||
-                !root.isObject()) {
-
-            return createNextStepsFallback(
-                    matchedSkills,
-                    missingSkills
-            );
-        }
-
-        JsonNode nextStepsNode =
-                root.get("nextSteps");
-
-        if (nextStepsNode == null ||
-                !nextStepsNode.isArray() ||
-                nextStepsNode.isEmpty() ||
-                nextStepsNode.size() > 10) {
-
-            return createNextStepsFallback(
-                    matchedSkills,
-                    missingSkills
-            );
-        }
-
-        List<String> nextSteps =
-                new ArrayList<>();
-
-        for (JsonNode item : nextStepsNode) {
-
-            if (!item.isTextual()) {
-
-                return createNextStepsFallback(
-                        matchedSkills,
-                        missingSkills
-                );
-            }
-
-            String nextStep =
-                    item.asText().trim();
-
-            if (nextStep.isBlank() ||
-                    nextStep.length() > 500) {
-
-                return createNextStepsFallback(
-                        matchedSkills,
-                        missingSkills
-                );
-            }
-
-            boolean duplicate =
-                    nextSteps.stream()
-                            .anyMatch(existing ->
-                                    existing.equalsIgnoreCase(
-                                            nextStep
-                                    )
-                            );
-
-            if (duplicate) {
-
-                return createNextStepsFallback(
-                        matchedSkills,
-                        missingSkills
-                );
-            }
-
-            nextSteps.add(nextStep);
-        }
-
-        return nextSteps;
-
-    } catch (Exception exception) {
-
-        logger.warn(
-                "Invalid career next-step AI response; using fallback",
-                exception
-        );
-
-        return createNextStepsFallback(
-                matchedSkills,
-                missingSkills
-        );
-    }
-}
-
-private List<String> createNextStepsFallback(
-        List<String> matchedSkills,
-        List<String> missingSkills) {
-
-    List<String> fallback =
-            new ArrayList<>();
-
-    for (String skill : missingSkills) {
-
-        if (skill == null ||
-                skill.isBlank()) {
-            continue;
-        }
-
-        fallback.add(
-                "Develop your " +
-                        skill +
-                        " skills through focused study and a practical project."
-        );
-
-        if (fallback.size() >= 10) {
-            break;
-        }
-    }
-
-    if (fallback.isEmpty()) {
-
-        for (String skill : matchedSkills) {
-
-            if (skill == null ||
-                    skill.isBlank()) {
-                continue;
-            }
-
-            fallback.add(
-                    "Strengthen your " +
-                            skill +
-                            " skills through deeper practice and project work."
-            );
-
-            if (fallback.size() >= 10) {
-                break;
-            }
-        }
-    }
-
-    if (fallback.isEmpty()) {
-
-        fallback.add(
-                "Build practical projects aligned with the target career path."
-        );
-    }
-
-    return fallback;
-}
 }

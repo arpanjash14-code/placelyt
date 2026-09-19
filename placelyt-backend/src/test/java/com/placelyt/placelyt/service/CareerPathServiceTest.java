@@ -1,5 +1,6 @@
 package com.placelyt.placelyt.service;
 
+import com.placelyt.placelyt.dto.CareerDirectionResponse;
 import com.placelyt.placelyt.dto.CareerPathAlternativeResponse;
 import com.placelyt.placelyt.dto.CareerPathResponse;
 import com.placelyt.placelyt.entity.CareerPath;
@@ -636,6 +637,285 @@ class CareerPathServiceTest {
 
         assertNotNull(responses);
         assertTrue(responses.isEmpty());
+    }
+
+    @Test
+    void shouldDetermineCurrentAndTargetCareerDirection() {
+
+        CareerPath backend =
+                createCareerPath(
+                        1L,
+                        "Backend Engineering",
+                        "Backend career path"
+                );
+
+        CareerPath frontend =
+                createCareerPath(
+                        2L,
+                        "Frontend Engineering",
+                        "Frontend career path"
+                );
+
+        CareerPath machineLearning =
+                createCareerPath(
+                        5L,
+                        "Machine Learning Engineering",
+                        "Machine learning career path"
+                );
+
+        when(studentProfileRepository.findByUserId(4L))
+                .thenReturn(Optional.of(
+                        new com.placelyt.placelyt.entity.StudentProfile()
+                ));
+
+        List<UserSkill> userSkills = List.of();
+
+        when(userSkillRepository.findByUserId(4L))
+                .thenReturn(userSkills);
+
+        when(careerPathRepository.findById(5L))
+                .thenReturn(Optional.of(machineLearning));
+
+        when(careerPathRepository.findAll())
+                .thenReturn(List.of(
+                        backend,
+                        frontend,
+                        machineLearning
+                ));
+
+        when(careerPathEngine.calculateReadiness(
+                backend,
+                userSkills
+        )).thenReturn(60.0);
+
+        when(careerPathEngine.calculateReadiness(
+                frontend,
+                userSkills
+        )).thenReturn(30.0);
+
+        when(careerPathEngine.calculateReadiness(
+                machineLearning,
+                userSkills
+        )).thenReturn(20.0);
+
+        when(careerPathEngine.getMatchedSkills(
+                backend,
+                userSkills
+        )).thenReturn(List.of(
+                "Java",
+                "Spring Boot",
+                "SQL"
+        ));
+
+        when(careerPathEngine.getMissingSkills(
+                backend,
+                userSkills
+        )).thenReturn(List.of(
+                "REST APIs",
+                "Docker"
+        ));
+
+        when(careerPathEngine.getMatchedSkills(
+                machineLearning,
+                userSkills
+        )).thenReturn(List.of(
+                "Python"
+        ));
+
+        when(careerPathEngine.getMissingSkills(
+                machineLearning,
+                userSkills
+        )).thenReturn(List.of(
+                "Machine Learning",
+                "Statistics",
+                "TensorFlow",
+                "PyTorch"
+        ));
+
+        CareerDirectionResponse response =
+                careerPathService.getCareerDirection(
+                        4L,
+                        5L
+                );
+
+        assertNotNull(response);
+
+        assertEquals(
+                "Backend Engineering",
+                response.getCurrentDirection()
+                        .getCareerPathName()
+        );
+
+        assertEquals(
+                60.0,
+                response.getCurrentDirection()
+                        .getReadinessScore()
+        );
+
+        assertEquals(
+                "Machine Learning Engineering",
+                response.getTargetDirection()
+                        .getCareerPathName()
+        );
+
+        assertEquals(
+                20.0,
+                response.getTargetDirection()
+                        .getReadinessScore()
+        );
+
+        assertEquals(
+                List.of(
+                        "Java",
+                        "Spring Boot",
+                        "SQL"
+                ),
+                response.getCurrentDirection()
+                        .getMatchedSkills()
+        );
+
+        assertEquals(
+                List.of(
+                        "Machine Learning",
+                        "Statistics",
+                        "TensorFlow",
+                        "PyTorch"
+                ),
+                response.getTargetDirection()
+                        .getMissingSkills()
+        );
+    }
+
+    @Test
+    void shouldThrowExceptionWhenStudentProfileDoesNotExistForCareerDirection() {
+
+        when(studentProfileRepository.findByUserId(999L))
+                .thenReturn(Optional.empty());
+
+        IllegalArgumentException exception =
+                assertThrows(
+                        IllegalArgumentException.class,
+                        () -> careerPathService.getCareerDirection(
+                                999L,
+                                5L
+                        )
+                );
+
+        assertEquals(
+                "Student profile not found",
+                exception.getMessage()
+        );
+    }
+
+    @Test
+    void shouldThrowExceptionWhenTargetCareerPathDoesNotExistForCareerDirection() {
+
+        when(studentProfileRepository.findByUserId(4L))
+                .thenReturn(Optional.of(
+                        new com.placelyt.placelyt.entity.StudentProfile()
+                ));
+
+        when(careerPathRepository.findById(999L))
+                .thenReturn(Optional.empty());
+
+        IllegalArgumentException exception =
+                assertThrows(
+                        IllegalArgumentException.class,
+                        () -> careerPathService.getCareerDirection(
+                                4L,
+                                999L
+                        )
+                );
+
+        assertEquals(
+                "Target career path not found",
+                exception.getMessage()
+        );
+    }
+
+    @Test
+    void shouldSelectHighestReadinessCareerPathAsCurrentDirection() {
+
+        CareerPath dataEngineering =
+                createCareerPath(
+                        4L,
+                        "Data Engineering",
+                        "Data engineering career path"
+                );
+
+        CareerPath backend =
+                createCareerPath(
+                        1L,
+                        "Backend Engineering",
+                        "Backend career path"
+                );
+
+        when(studentProfileRepository.findByUserId(4L))
+                .thenReturn(Optional.of(
+                        new com.placelyt.placelyt.entity.StudentProfile()
+                ));
+
+        List<UserSkill> userSkills = List.of();
+
+        when(userSkillRepository.findByUserId(4L))
+                .thenReturn(userSkills);
+
+        when(careerPathRepository.findById(4L))
+                .thenReturn(Optional.of(dataEngineering));
+
+        when(careerPathRepository.findAll())
+                .thenReturn(List.of(
+                        backend,
+                        dataEngineering
+                ));
+
+        when(careerPathEngine.calculateReadiness(
+                backend,
+                userSkills
+        )).thenReturn(80.0);
+
+        when(careerPathEngine.calculateReadiness(
+                dataEngineering,
+                userSkills
+        )).thenReturn(25.0);
+
+        when(careerPathEngine.getMatchedSkills(
+                backend,
+                userSkills
+        )).thenReturn(List.of("Java"));
+
+        when(careerPathEngine.getMissingSkills(
+                backend,
+                userSkills
+        )).thenReturn(List.of("Spring Boot"));
+
+        when(careerPathEngine.getMatchedSkills(
+                dataEngineering,
+                userSkills
+        )).thenReturn(List.of("SQL"));
+
+        when(careerPathEngine.getMissingSkills(
+                dataEngineering,
+                userSkills
+        )).thenReturn(List.of("Python"));
+
+        CareerDirectionResponse response =
+                careerPathService.getCareerDirection(
+                        4L,
+                        4L
+                );
+
+        assertEquals(
+                "Backend Engineering",
+                response.getCurrentDirection()
+                        .getCareerPathName()
+        );
+
+        assertEquals(
+                "Data Engineering",
+                response.getTargetDirection()
+                        .getCareerPathName()
+        );
     }
 
     private CareerPath createCareerPath(

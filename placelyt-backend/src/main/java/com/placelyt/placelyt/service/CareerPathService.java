@@ -1,5 +1,6 @@
 package com.placelyt.placelyt.service;
 
+import com.placelyt.placelyt.dto.CareerDirectionResponse;
 import com.placelyt.placelyt.dto.CareerPathAlternativeResponse;
 import com.placelyt.placelyt.dto.CareerPathResponse;
 import com.placelyt.placelyt.entity.CareerPath;
@@ -127,6 +128,73 @@ public class CareerPathService {
                         ).reversed()
                 )
                 .toList();
+    }
+
+    public CareerDirectionResponse getCareerDirection(
+            Long userId,
+            Long targetCareerPathId) {
+
+        studentProfileRepository
+                .findByUserId(userId)
+                .orElseThrow(() ->
+                        new IllegalArgumentException(
+                                "Student profile not found"
+                        ));
+
+        CareerPath targetCareerPath =
+                careerPathRepository
+                        .findById(targetCareerPathId)
+                        .orElseThrow(() ->
+                                new IllegalArgumentException(
+                                        "Target career path not found"
+                                ));
+
+        List<UserSkill> userSkills =
+                userSkillRepository.findByUserId(userId);
+
+        List<CareerPath> careerPaths =
+                careerPathRepository.findAll();
+
+        CareerPath currentCareerPath =
+                careerPaths.stream()
+                        .max(
+                                Comparator.comparingDouble(
+                                        careerPath ->
+                                                careerPathEngine
+                                                        .calculateReadiness(
+                                                                careerPath,
+                                                                userSkills
+                                                        )
+                                )
+                        )
+                        .orElse(null);
+
+        if (currentCareerPath == null) {
+            return new CareerDirectionResponse(
+                    null,
+                    createResponse(
+                            targetCareerPath,
+                            userSkills
+                    )
+            );
+        }
+
+        CareerPathResponse currentDirection =
+                createResponse(
+                        currentCareerPath,
+                        userSkills
+                );
+
+        CareerPathResponse targetDirection =
+                createResponse(
+                        targetCareerPath,
+                        userSkills
+                );
+
+        return new CareerDirectionResponse(
+                currentDirection,
+                targetDirection
+        );
     }
 
     private CareerPathResponse createResponse(

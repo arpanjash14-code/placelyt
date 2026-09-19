@@ -1,6 +1,7 @@
 package com.placelyt.placelyt.ai;
 
 import com.placelyt.placelyt.dto.CareerAIResponse;
+import com.placelyt.placelyt.dto.CareerGuidanceResponse;
 import com.placelyt.placelyt.dto.CareerPathAlternativeResponse;
 
 import java.util.List;
@@ -20,9 +21,16 @@ public interface AIService {
     );
 
     List<String> generateCareerNextSteps(
-        String careerPathName,
-        double readinessScore,
-        List<String> matchedSkills,
-        List<String> missingSkills
-);
+            String careerPathName,
+            double readinessScore,
+            List<String> matchedSkills,
+            List<String> missingSkills
+    );
+
+    CareerGuidanceResponse generateCareerGuidance(
+            String currentCareerPath,
+            String targetCareerPath,
+            List<String> matchedSkills,
+            List<String> missingSkills
+    );
 }

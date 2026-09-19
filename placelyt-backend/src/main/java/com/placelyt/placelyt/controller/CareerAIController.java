@@ -2,6 +2,7 @@ package com.placelyt.placelyt.controller;
 
 import com.placelyt.placelyt.ai.AIService;
 import com.placelyt.placelyt.dto.CareerAIResponse;
+import com.placelyt.placelyt.dto.CareerDirectionResponse;
 import com.placelyt.placelyt.dto.CareerPathAlternativeResponse;
 import com.placelyt.placelyt.dto.SkillIntelligenceResponse;
 import com.placelyt.placelyt.entity.CareerPath;
@@ -36,11 +37,16 @@ public class CareerAIController {
             CareerPathService careerPathService) {
 
         this.careerPathRepository = careerPathRepository;
+
         this.userSkillRepository = userSkillRepository;
+
         this.careerPathEngine = careerPathEngine;
+
         this.aiService = aiService;
+
         this.skillIntelligenceService =
                 skillIntelligenceService;
+
         this.careerPathService =
                 careerPathService;
     }
@@ -164,6 +170,21 @@ public class CareerAIController {
                 );
 
         return ResponseEntity.ok(nextSteps);
+    }
+
+    @GetMapping("/{userId}/{careerPathId}/direction")
+    public ResponseEntity<CareerDirectionResponse>
+    getCareerDirection(
+            @PathVariable Long userId,
+            @PathVariable Long careerPathId) {
+
+        CareerDirectionResponse response =
+                careerPathService.getCareerDirection(
+                        userId,
+                        careerPathId
+                );
+
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping("/{userId}/skill-intelligence")
