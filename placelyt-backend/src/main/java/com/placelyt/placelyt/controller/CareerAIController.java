@@ -3,7 +3,9 @@ package com.placelyt.placelyt.controller;
 import com.placelyt.placelyt.ai.AIService;
 import com.placelyt.placelyt.dto.CareerAIResponse;
 import com.placelyt.placelyt.dto.CareerDirectionResponse;
+import com.placelyt.placelyt.dto.CareerGuidanceResponse;
 import com.placelyt.placelyt.dto.CareerPathAlternativeResponse;
+import com.placelyt.placelyt.dto.CareerPathResponse;
 import com.placelyt.placelyt.dto.SkillIntelligenceResponse;
 import com.placelyt.placelyt.entity.CareerPath;
 import com.placelyt.placelyt.entity.UserSkill;
@@ -13,7 +15,10 @@ import com.placelyt.placelyt.repository.UserSkillRepository;
 import com.placelyt.placelyt.service.CareerPathService;
 import com.placelyt.placelyt.service.SkillIntelligenceService;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 
@@ -182,6 +187,43 @@ public class CareerAIController {
                 careerPathService.getCareerDirection(
                         userId,
                         careerPathId
+                );
+
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/{userId}/{targetCareerPathId}/guidance")
+    public ResponseEntity<CareerGuidanceResponse>
+    getCareerGuidance(
+            @PathVariable Long userId,
+            @PathVariable Long targetCareerPathId) {
+
+        CareerDirectionResponse direction =
+                careerPathService.getCareerDirection(
+                        userId,
+                        targetCareerPathId
+                );
+
+        CareerPathResponse currentDirection =
+                direction.getCurrentDirection();
+
+        CareerPathResponse targetDirection =
+                direction.getTargetDirection();
+
+        if (currentDirection == null ||
+                targetDirection == null) {
+
+            throw new IllegalArgumentException(
+                    "Career direction could not be determined"
+            );
+        }
+
+        CareerGuidanceResponse response =
+                aiService.generateCareerGuidance(
+                        currentDirection.getCareerPathName(),
+                        targetDirection.getCareerPathName(),
+                        targetDirection.getMatchedSkills(),
+                        targetDirection.getMissingSkills()
                 );
 
         return ResponseEntity.ok(response);
