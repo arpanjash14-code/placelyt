@@ -104,13 +104,24 @@ public class ReadinessService {
                                 studentProfile
                         );
 
+        /*
+         * The four readiness components have already been
+         * calculated above, so do not calculate them again.
+         *
+         * Maximum readiness:
+         *
+         * Academic       = 25
+         * Skills         = 40
+         * Experience     = 20
+         * Profile        = 15
+         *
+         * Total           = 100
+         */
         double readinessScore =
-                readinessAssessmentEngine
-                        .calculateReadinessScore(
-                                studentProfile,
-                                userSkills,
-                                job
-                        );
+                academicReadiness
+                        + skillReadiness
+                        + experienceReadiness
+                        + profileCompleteness;
 
         List<String> strengths =
                 calculateStrengths(

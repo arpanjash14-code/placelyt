@@ -1,18 +1,35 @@
 package com.placelyt.placelyt.matching;
 
 import com.placelyt.placelyt.entity.Job;
-import com.placelyt.placelyt.entity.JobEligibleBranch;
 import com.placelyt.placelyt.entity.JobRequiredSkill;
 import com.placelyt.placelyt.entity.Preference;
 import com.placelyt.placelyt.entity.StudentProfile;
 import com.placelyt.placelyt.entity.UserSkill;
 import org.springframework.stereotype.Component;
 
-import java.util.ArrayList;
 import java.util.List;
 
 @Component
 public class JobMatchingEngine {
+
+    private final SkillMatchingEngine skillMatchingEngine;
+    private final AcademicEligibilityEngine academicEligibilityEngine;
+    private final ExperienceMatchingEngine experienceMatchingEngine;
+
+    public JobMatchingEngine(
+            SkillMatchingEngine skillMatchingEngine,
+            AcademicEligibilityEngine academicEligibilityEngine,
+            ExperienceMatchingEngine experienceMatchingEngine) {
+
+        this.skillMatchingEngine =
+                skillMatchingEngine;
+
+        this.academicEligibilityEngine =
+                academicEligibilityEngine;
+
+        this.experienceMatchingEngine =
+                experienceMatchingEngine;
+    }
 
     /*
      * ---------------------------------------------------------
@@ -24,168 +41,10 @@ public class JobMatchingEngine {
             StudentProfile student,
             Job job) {
 
-        if (student == null || job == null) {
-            return false;
-        }
-
-        if (!matchesCgpa(student, job)) {
-            return false;
-        }
-
-        if (!matchesGraduationYear(student, job)) {
-            return false;
-        }
-
-        if (!matchesBranch(student, job)) {
-            return false;
-        }
-
-        if (!matchesDegree(student, job)) {
-            return false;
-        }
-
-        return true;
-    }
-
-    private boolean matchesCgpa(
-            StudentProfile student,
-            Job job) {
-
-        if (job.getMinimumCgpa() == null) {
-            return true;
-        }
-
-        if (student.getCgpa() == null) {
-            return false;
-        }
-
-        return student.getCgpa() >= job.getMinimumCgpa();
-    }
-
-    private boolean matchesGraduationYear(
-            StudentProfile student,
-            Job job) {
-
-        if (job.getEligibleGraduationYear() == null) {
-            return true;
-        }
-
-        if (student.getGraduationYear() == null) {
-            return false;
-        }
-
-        return student.getGraduationYear()
-                .equals(job.getEligibleGraduationYear());
-    }
-
-    private boolean matchesBranch(
-            StudentProfile student,
-            Job job) {
-
-        if (job.getEligibleBranches() == null
-                || job.getEligibleBranches().isEmpty()) {
-            return true;
-        }
-
-        if (student.getBranch() == null
-                || student.getBranch().isBlank()) {
-            return false;
-        }
-
-        String studentBranch =
-                normalizeBranch(student.getBranch());
-
-        for (JobEligibleBranch eligibleBranch
-                : job.getEligibleBranches()) {
-
-            if (eligibleBranch == null
-                    || eligibleBranch.getBranch() == null
-                    || eligibleBranch.getBranch().isBlank()) {
-                continue;
-            }
-
-            String eligibleBranchName =
-                    normalizeBranch(
-                            eligibleBranch.getBranch()
-                    );
-
-            if (eligibleBranchName.equals(studentBranch)) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    /*
-     * ---------------------------------------------------------
-     * BRANCH NORMALIZATION
-     * ---------------------------------------------------------
-     */
-
-    private String normalizeBranch(String branch) {
-
-        if (branch == null) {
-            return "";
-        }
-
-        String normalized =
-                branch
-                        .trim()
-                        .toLowerCase()
-                        .replaceAll("[^a-z0-9]", "");
-
-        return switch (normalized) {
-
-            case "cse",
-                 "computerscience",
-                 "computerscienceandengineering" ->
-                    "cse";
-
-            case "ece",
-                 "electronicsandcommunication",
-                 "electronicsandcommunicationengineering" ->
-                    "ece";
-
-            case "eee",
-                 "electricalandelectronics",
-                 "electricalandelectronicsengineering" ->
-                    "eee";
-
-            case "me",
-                 "mechanical",
-                 "mechanicalengineering" ->
-                    "me";
-
-            case "ce",
-                 "civil",
-                 "civilengineering" ->
-                    "ce";
-
-            default ->
-                    normalized;
-        };
-    }
-
-    private boolean matchesDegree(
-            StudentProfile student,
-            Job job) {
-
-        if (job.getRequiredDegree() == null
-                || job.getRequiredDegree().isBlank()) {
-            return true;
-        }
-
-        if (student.getDegree() == null
-                || student.getDegree().isBlank()) {
-            return false;
-        }
-
-        return student.getDegree()
-                .trim()
-                .equalsIgnoreCase(
-                        job.getRequiredDegree().trim()
-                );
+        return academicEligibilityEngine.isEligible(
+                student,
+                job
+        );
     }
 
     /*
@@ -195,11 +54,11 @@ public class JobMatchingEngine {
      *
      * Total possible score = 100
      *
-     * Skills           = 35
-     * Experience       = 15
-     * Preferred role   = 20
-     * Work mode        = 10
-     * Location         = 10
+     * Skills            = 35
+     * Experience        = 15
+     * Preferred role    = 20
+     * Work mode         = 10
+     * Location          = 10
      * Employment type   = 5
      * Salary            = 5
      */
@@ -266,11 +125,13 @@ public class JobMatchingEngine {
 
         if (job.getRequiredSkills() == null
                 || job.getRequiredSkills().isEmpty()) {
+
             return 0.0;
         }
 
         if (userSkills == null
                 || userSkills.isEmpty()) {
+
             return 0.0;
         }
 
@@ -285,6 +146,7 @@ public class JobMatchingEngine {
             if (requiredSkill == null
                     || requiredSkill.getSkill() == null
                     || requiredSkill.getSkill().getName() == null) {
+
                 continue;
             }
 
@@ -293,25 +155,11 @@ public class JobMatchingEngine {
                             .getName()
                             .trim();
 
-            for (UserSkill userSkill : userSkills) {
+            if (skillMatchingEngine.hasSkill(
+                    requiredSkillName,
+                    userSkills)) {
 
-                if (userSkill == null
-                        || userSkill.getSkill() == null
-                        || userSkill.getSkill().getName() == null) {
-                    continue;
-                }
-
-                String userSkillName =
-                        userSkill.getSkill()
-                                .getName()
-                                .trim();
-
-                if (requiredSkillName.equalsIgnoreCase(
-                        userSkillName)) {
-
-                    matchedSkills++;
-                    break;
-                }
+                matchedSkills++;
             }
         }
 
@@ -324,21 +172,8 @@ public class JobMatchingEngine {
      * EXPERIENCE SCORE - 15 POINTS
      * ---------------------------------------------------------
      *
-     * Experience is calculated only from the student's
-     * skills that are required by the job.
-     *
-     * If the job has no experience requirement,
-     * no experience points are awarded.
-     *
-     * If the student has no relevant experience,
-     * the score is 0.
-     *
-     * If the student's relevant experience is equal to
-     * or greater than the required experience,
-     * the student receives all 15 points.
-     *
-     * Otherwise, the score is proportional to the amount
-     * of relevant experience the student has.
+     * Experience calculation is delegated to the shared
+     * ExperienceMatchingEngine.
      */
 
     private double calculateExperienceScore(
@@ -350,83 +185,20 @@ public class JobMatchingEngine {
 
         if (requiredExperience == null
                 || requiredExperience <= 0.0) {
+
             return 0.0;
         }
 
-        if (userSkills == null
-                || userSkills.isEmpty()) {
-            return 0.0;
-        }
-
-        if (job.getRequiredSkills() == null
-                || job.getRequiredSkills().isEmpty()) {
-            return 0.0;
-        }
-
-        List<Double> relevantExperience =
-                new ArrayList<>();
-
-        for (JobRequiredSkill requiredSkill
-                : job.getRequiredSkills()) {
-
-            if (requiredSkill == null
-                    || requiredSkill.getSkill() == null
-                    || requiredSkill.getSkill().getName() == null) {
-                continue;
-            }
-
-            String requiredSkillName =
-                    requiredSkill.getSkill()
-                            .getName()
-                            .trim();
-
-            for (UserSkill userSkill : userSkills) {
-
-                if (userSkill == null
-                        || userSkill.getSkill() == null
-                        || userSkill.getSkill().getName() == null) {
-                    continue;
-                }
-
-                String userSkillName =
-                        userSkill.getSkill()
-                                .getName()
-                                .trim();
-
-                if (requiredSkillName.equalsIgnoreCase(
-                        userSkillName)) {
-
-                    Double yearsOfExperience =
-                            userSkill.getYearsOfExperience();
-
-                    if (yearsOfExperience != null
-                            && yearsOfExperience >= 0.0) {
-
-                        relevantExperience.add(
-                                yearsOfExperience
+        Double averageExperience =
+                experienceMatchingEngine
+                        .calculateAverageRelevantExperience(
+                                userSkills,
+                                job
                         );
-                    }
 
-                    break;
-                }
-            }
-        }
-
-        if (relevantExperience.isEmpty()) {
+        if (averageExperience == null) {
             return 0.0;
         }
-
-        double totalExperience = 0.0;
-
-        for (Double experience
-                : relevantExperience) {
-
-            totalExperience += experience;
-        }
-
-        double averageExperience =
-                totalExperience
-                        / relevantExperience.size();
 
         double experienceRatio =
                 averageExperience
@@ -630,11 +402,13 @@ public class JobMatchingEngine {
 
         if (preferredMinimum == null
                 && preferredMaximum == null) {
+
             return 0.0;
         }
 
         if (jobMinimum == null
                 && jobMaximum == null) {
+
             return 0.0;
         }
 

@@ -1,6 +1,7 @@
 package com.placelyt.placelyt.entity;
 
 import jakarta.persistence.*;
+import org.hibernate.annotations.BatchSize;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -61,19 +62,23 @@ public class Job {
     @Column(nullable = false, length = 20)
     private JobStatus status;
 
+    @BatchSize(size = 50)
     @OneToMany(
             mappedBy = "job",
             cascade = CascadeType.ALL,
             orphanRemoval = true
     )
-    private List<JobEligibleBranch> eligibleBranches = new ArrayList<>();
+    private List<JobEligibleBranch> eligibleBranches =
+            new ArrayList<>();
 
+    @BatchSize(size = 50)
     @OneToMany(
             mappedBy = "job",
             cascade = CascadeType.ALL,
             orphanRemoval = true
     )
-    private List<JobRequiredSkill> requiredSkills = new ArrayList<>();
+    private List<JobRequiredSkill> requiredSkills =
+            new ArrayList<>();
 
     public Job() {
     }
@@ -158,6 +163,16 @@ public class Job {
         this.minimumCgpa = minimumCgpa;
     }
 
+    public Double getMinimumYearsOfExperience() {
+        return minimumYearsOfExperience;
+    }
+
+    public void setMinimumYearsOfExperience(
+            Double minimumYearsOfExperience) {
+        this.minimumYearsOfExperience =
+                minimumYearsOfExperience;
+    }
+
     public String getRequiredDegree() {
         return requiredDegree;
     }
@@ -170,16 +185,20 @@ public class Job {
         return eligibleGraduationYear;
     }
 
-    public void setEligibleGraduationYear(Integer eligibleGraduationYear) {
-        this.eligibleGraduationYear = eligibleGraduationYear;
+    public void setEligibleGraduationYear(
+            Integer eligibleGraduationYear) {
+        this.eligibleGraduationYear =
+                eligibleGraduationYear;
     }
 
     public LocalDate getApplicationDeadline() {
         return applicationDeadline;
     }
 
-    public void setApplicationDeadline(LocalDate applicationDeadline) {
-        this.applicationDeadline = applicationDeadline;
+    public void setApplicationDeadline(
+            LocalDate applicationDeadline) {
+        this.applicationDeadline =
+                applicationDeadline;
     }
 
     public JobStatus getStatus() {
@@ -196,7 +215,8 @@ public class Job {
 
     public void setEligibleBranches(
             List<JobEligibleBranch> eligibleBranches) {
-        this.eligibleBranches = eligibleBranches;
+        this.eligibleBranches =
+                eligibleBranches;
     }
 
     public List<JobRequiredSkill> getRequiredSkills() {
@@ -205,16 +225,7 @@ public class Job {
 
     public void setRequiredSkills(
             List<JobRequiredSkill> requiredSkills) {
-        this.requiredSkills = requiredSkills;
+        this.requiredSkills =
+                requiredSkills;
     }
-
-    public Double getMinimumYearsOfExperience() {
-    return minimumYearsOfExperience;
-}
-
-public void setMinimumYearsOfExperience(
-        Double minimumYearsOfExperience) {
-    this.minimumYearsOfExperience =
-            minimumYearsOfExperience;
-}
 }

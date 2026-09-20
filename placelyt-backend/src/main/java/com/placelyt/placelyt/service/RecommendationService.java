@@ -8,6 +8,7 @@ import com.placelyt.placelyt.entity.Preference;
 import com.placelyt.placelyt.entity.StudentProfile;
 import com.placelyt.placelyt.entity.UserSkill;
 import com.placelyt.placelyt.matching.JobMatchingEngine;
+import com.placelyt.placelyt.matching.SkillMatchingEngine;
 import com.placelyt.placelyt.repository.JobRepository;
 import com.placelyt.placelyt.repository.PreferenceRepository;
 import com.placelyt.placelyt.repository.StudentProfileRepository;
@@ -26,13 +27,15 @@ public class RecommendationService {
     private final UserSkillRepository userSkillRepository;
     private final JobRepository jobRepository;
     private final JobMatchingEngine jobMatchingEngine;
+    private final SkillMatchingEngine skillMatchingEngine;
 
     public RecommendationService(
             StudentProfileRepository studentProfileRepository,
             PreferenceRepository preferenceRepository,
             UserSkillRepository userSkillRepository,
             JobRepository jobRepository,
-            JobMatchingEngine jobMatchingEngine) {
+            JobMatchingEngine jobMatchingEngine,
+            SkillMatchingEngine skillMatchingEngine) {
 
         this.studentProfileRepository =
                 studentProfileRepository;
@@ -48,6 +51,9 @@ public class RecommendationService {
 
         this.jobMatchingEngine =
                 jobMatchingEngine;
+
+        this.skillMatchingEngine =
+                skillMatchingEngine;
     }
 
     public List<JobRecommendationResponse> getRecommendations(
@@ -72,12 +78,11 @@ public class RecommendationService {
                         .findByUserId(userId);
 
         List<Job> jobs =
-                jobRepository.findAll();
+                jobRepository.findByStatus(
+                        JobStatus.OPEN
+                );
 
         return jobs.stream()
-                .filter(job ->
-                        job.getStatus() == JobStatus.OPEN
-                )
                 .filter(job ->
                         jobMatchingEngine.isEligible(
                                 student,
@@ -138,95 +143,37 @@ public class RecommendationService {
                 true
         );
 
+        List<String> requiredSkillNames =
+                getRequiredSkillNames(job);
+
         response.setMatchedSkills(
-                findMatchedSkills(
-                        userSkills,
-                        job
+                skillMatchingEngine.findMatchedSkillNames(
+                        requiredSkillNames,
+                        userSkills
                 )
         );
 
         response.setMissingSkills(
-                findMissingSkills(
-                        userSkills,
-                        job
+                skillMatchingEngine.findMissingSkillNames(
+                        requiredSkillNames,
+                        userSkills
                 )
         );
 
         return response;
     }
 
-    private List<String> findMatchedSkills(
-            List<UserSkill> userSkills,
+    private List<String> getRequiredSkillNames(
             Job job) {
 
-        List<String> matchedSkills =
+        List<String> requiredSkillNames =
                 new ArrayList<>();
 
-        if (job.getRequiredSkills() == null
-                || job.getRequiredSkills().isEmpty()
-                || userSkills == null
-                || userSkills.isEmpty()) {
-
-            return matchedSkills;
-        }
-
-        for (JobRequiredSkill requiredSkill
-                : job.getRequiredSkills()) {
-
-            if (requiredSkill == null
-                    || requiredSkill.getSkill() == null
-                    || requiredSkill.getSkill().getName() == null) {
-
-                continue;
-            }
-
-            String requiredSkillName =
-                    requiredSkill.getSkill()
-                            .getName()
-                            .trim();
-
-            for (UserSkill userSkill : userSkills) {
-
-                if (userSkill == null
-                        || userSkill.getSkill() == null
-                        || userSkill.getSkill().getName() == null) {
-
-                    continue;
-                }
-
-                String userSkillName =
-                        userSkill.getSkill()
-                                .getName()
-                                .trim();
-
-                if (requiredSkillName.equalsIgnoreCase(
-                        userSkillName)) {
-
-                    matchedSkills.add(
-                            requiredSkill
-                                    .getSkill()
-                                    .getName()
-                    );
-
-                    break;
-                }
-            }
-        }
-
-        return matchedSkills;
-    }
-
-    private List<String> findMissingSkills(
-            List<UserSkill> userSkills,
-            Job job) {
-
-        List<String> missingSkills =
-                new ArrayList<>();
-
-        if (job.getRequiredSkills() == null
+        if (job == null
+                || job.getRequiredSkills() == null
                 || job.getRequiredSkills().isEmpty()) {
 
-            return missingSkills;
+            return requiredSkillNames;
         }
 
         for (JobRequiredSkill requiredSkill
@@ -239,49 +186,13 @@ public class RecommendationService {
                 continue;
             }
 
-            String requiredSkillName =
-                    requiredSkill.getSkill()
+            requiredSkillNames.add(
+                    requiredSkill
+                            .getSkill()
                             .getName()
-                            .trim();
-
-            boolean matched = false;
-
-            if (userSkills != null) {
-
-                for (UserSkill userSkill
-                        : userSkills) {
-
-                    if (userSkill == null
-                            || userSkill.getSkill() == null
-                            || userSkill.getSkill().getName() == null) {
-
-                        continue;
-                    }
-
-                    String userSkillName =
-                            userSkill.getSkill()
-                                    .getName()
-                                    .trim();
-
-                    if (requiredSkillName.equalsIgnoreCase(
-                            userSkillName)) {
-
-                        matched = true;
-                        break;
-                    }
-                }
-            }
-
-            if (!matched) {
-
-                missingSkills.add(
-                        requiredSkill
-                                .getSkill()
-                                .getName()
-                );
-            }
+            );
         }
 
-        return missingSkills;
+        return requiredSkillNames;
     }
 }

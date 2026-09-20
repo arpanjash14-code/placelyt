@@ -18,10 +18,14 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class JobMatchingEngineTest {
-
-    private final JobMatchingEngine engine =
-            new JobMatchingEngine();
-
+private final JobMatchingEngine engine =
+        new JobMatchingEngine(
+                new SkillMatchingEngine(),
+                new AcademicEligibilityEngine(),
+                new ExperienceMatchingEngine(
+                        new SkillMatchingEngine()
+                )
+        );
     @Test
     void shouldBeEligibleWhenAllRequirementsMatch() {
 

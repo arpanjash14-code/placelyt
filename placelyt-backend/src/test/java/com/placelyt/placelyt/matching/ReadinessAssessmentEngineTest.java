@@ -17,10 +17,16 @@ class ReadinessAssessmentEngineTest {
 
     private ReadinessAssessmentEngine engine;
 
-    @BeforeEach
-    void setUp() {
-        engine = new ReadinessAssessmentEngine();
-    }
+   @BeforeEach
+void setUp() {
+    engine = new ReadinessAssessmentEngine(
+            new SkillMatchingEngine(),
+            new AcademicEligibilityEngine(),
+            new ExperienceMatchingEngine(
+                    new SkillMatchingEngine()
+            )
+    );
+}
 
     // ---------------------------------------------------------
     // Academic Readiness

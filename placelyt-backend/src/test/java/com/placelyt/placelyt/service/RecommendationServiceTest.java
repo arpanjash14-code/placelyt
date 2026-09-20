@@ -3,13 +3,14 @@ package com.placelyt.placelyt.service;
 import com.placelyt.placelyt.dto.JobRecommendationResponse;
 import com.placelyt.placelyt.entity.Company;
 import com.placelyt.placelyt.entity.Job;
+import com.placelyt.placelyt.entity.JobRequiredSkill;
 import com.placelyt.placelyt.entity.JobStatus;
 import com.placelyt.placelyt.entity.Preference;
+import com.placelyt.placelyt.entity.Skill;
 import com.placelyt.placelyt.entity.StudentProfile;
 import com.placelyt.placelyt.entity.UserSkill;
-import com.placelyt.placelyt.entity.JobRequiredSkill;
-import com.placelyt.placelyt.entity.Skill;
 import com.placelyt.placelyt.matching.JobMatchingEngine;
+import com.placelyt.placelyt.matching.SkillMatchingEngine;
 import com.placelyt.placelyt.repository.JobRepository;
 import com.placelyt.placelyt.repository.PreferenceRepository;
 import com.placelyt.placelyt.repository.StudentProfileRepository;
@@ -44,6 +45,9 @@ class RecommendationServiceTest {
 
     @Mock
     private JobMatchingEngine jobMatchingEngine;
+
+    @Mock
+    private SkillMatchingEngine skillMatchingEngine;
 
     @InjectMocks
     private RecommendationService recommendationService;
@@ -83,7 +87,7 @@ class RecommendationServiceTest {
         when(userSkillRepository.findByUserId(userId))
                 .thenReturn(userSkills);
 
-        when(jobRepository.findAll())
+        when(jobRepository.findByStatus(JobStatus.OPEN))
                 .thenReturn(List.of(firstJob, secondJob));
 
         when(jobMatchingEngine.isEligible(student, firstJob))
@@ -165,7 +169,7 @@ class RecommendationServiceTest {
         when(userSkillRepository.findByUserId(userId))
                 .thenReturn(List.of());
 
-        when(jobRepository.findAll())
+        when(jobRepository.findByStatus(JobStatus.OPEN))
                 .thenReturn(List.of(
                         eligibleJob,
                         ineligibleJob
@@ -249,7 +253,7 @@ class RecommendationServiceTest {
         when(userSkillRepository.findByUserId(userId))
                 .thenReturn(List.of());
 
-        when(jobRepository.findAll())
+       when(jobRepository.findByStatus(JobStatus.OPEN))
                 .thenReturn(List.of(
                         openJob,
                         closedJob,
@@ -310,7 +314,7 @@ class RecommendationServiceTest {
         when(userSkillRepository.findByUserId(userId))
                 .thenReturn(List.of());
 
-        when(jobRepository.findAll())
+        when(jobRepository.findByStatus(JobStatus.OPEN))
                 .thenReturn(List.of(job));
 
         when(jobMatchingEngine.isEligible(
@@ -412,7 +416,7 @@ class RecommendationServiceTest {
         when(userSkillRepository.findByUserId(userId))
                 .thenReturn(userSkills);
 
-        when(jobRepository.findAll())
+       when(jobRepository.findByStatus(JobStatus.OPEN))
                 .thenReturn(List.of(job));
 
         when(jobMatchingEngine.isEligible(
@@ -426,6 +430,16 @@ class RecommendationServiceTest {
                 userSkills,
                 job
         )).thenReturn(80.0);
+
+        when(skillMatchingEngine.findMatchedSkillNames(
+                List.of("Java", "Spring Boot", "Docker"),
+                userSkills
+        )).thenReturn(List.of("Java", "Spring Boot"));
+
+        when(skillMatchingEngine.findMissingSkillNames(
+                List.of("Java", "Spring Boot", "Docker"),
+                userSkills
+        )).thenReturn(List.of("Docker"));
 
         List<JobRecommendationResponse> recommendations =
                 recommendationService.getRecommendations(userId);
@@ -474,7 +488,7 @@ class RecommendationServiceTest {
         when(userSkillRepository.findByUserId(userId))
                 .thenReturn(List.of());
 
-        when(jobRepository.findAll())
+       when(jobRepository.findByStatus(JobStatus.OPEN))
                 .thenReturn(List.of(job));
 
         when(jobMatchingEngine.isEligible(
@@ -488,6 +502,16 @@ class RecommendationServiceTest {
                 List.of(),
                 job
         )).thenReturn(0.0);
+
+        when(skillMatchingEngine.findMatchedSkillNames(
+                List.of(),
+                List.of()
+        )).thenReturn(List.of());
+
+        when(skillMatchingEngine.findMissingSkillNames(
+                List.of(),
+                List.of()
+        )).thenReturn(List.of());
 
         List<JobRecommendationResponse> recommendations =
                 recommendationService.getRecommendations(userId);

@@ -6,11 +6,29 @@ import com.placelyt.placelyt.entity.StudentProfile;
 import com.placelyt.placelyt.entity.UserSkill;
 import org.springframework.stereotype.Component;
 
-import java.util.ArrayList;
 import java.util.List;
 
 @Component
 public class ReadinessAssessmentEngine {
+
+    private final SkillMatchingEngine skillMatchingEngine;
+    private final AcademicEligibilityEngine academicEligibilityEngine;
+    private final ExperienceMatchingEngine experienceMatchingEngine;
+
+    public ReadinessAssessmentEngine(
+            SkillMatchingEngine skillMatchingEngine,
+            AcademicEligibilityEngine academicEligibilityEngine,
+            ExperienceMatchingEngine experienceMatchingEngine) {
+
+        this.skillMatchingEngine =
+                skillMatchingEngine;
+
+        this.academicEligibilityEngine =
+                academicEligibilityEngine;
+
+        this.experienceMatchingEngine =
+                experienceMatchingEngine;
+    }
 
     /*
      * ---------------------------------------------------------
@@ -80,7 +98,7 @@ public class ReadinessAssessmentEngine {
             return 0.0;
         }
 
-        if (!matchesAcademicRequirements(
+        if (!academicEligibilityEngine.isEligible(
                 student,
                 job)) {
 
@@ -88,167 +106,6 @@ public class ReadinessAssessmentEngine {
         }
 
         return 25.0;
-    }
-
-    private boolean matchesAcademicRequirements(
-            StudentProfile student,
-            Job job) {
-
-        if (job.getMinimumCgpa() != null) {
-
-            if (student.getCgpa() == null
-                    || student.getCgpa()
-                    < job.getMinimumCgpa()) {
-
-                return false;
-            }
-        }
-
-        if (job.getEligibleGraduationYear() != null) {
-
-            if (student.getGraduationYear() == null
-                    || !student.getGraduationYear()
-                    .equals(
-                            job.getEligibleGraduationYear()
-                    )) {
-
-                return false;
-            }
-        }
-
-        if (!matchesBranch(
-                student,
-                job)) {
-
-            return false;
-        }
-
-        if (!matchesDegree(
-                student,
-                job)) {
-
-            return false;
-        }
-
-        return true;
-    }
-
-    private boolean matchesBranch(
-            StudentProfile student,
-            Job job) {
-
-        if (job.getEligibleBranches() == null
-                || job.getEligibleBranches().isEmpty()) {
-
-            return true;
-        }
-
-        if (student.getBranch() == null
-                || student.getBranch().isBlank()) {
-
-            return false;
-        }
-
-        String studentBranch =
-                normalizeBranch(
-                        student.getBranch()
-                );
-
-        for (var eligibleBranch
-                : job.getEligibleBranches()) {
-
-            if (eligibleBranch == null
-                    || eligibleBranch.getBranch() == null
-                    || eligibleBranch.getBranch().isBlank()) {
-
-                continue;
-            }
-
-            String eligibleBranchName =
-                    normalizeBranch(
-                            eligibleBranch.getBranch()
-                    );
-
-            if (eligibleBranchName.equals(
-                    studentBranch)) {
-
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    private String normalizeBranch(
-            String branch) {
-
-        if (branch == null) {
-            return "";
-        }
-
-        String normalized =
-                branch
-                        .trim()
-                        .toLowerCase()
-                        .replaceAll(
-                                "[^a-z0-9]",
-                                ""
-                        );
-
-        return switch (normalized) {
-
-            case "cse",
-                 "computerscience",
-                 "computerscienceandengineering" ->
-                    "cse";
-
-            case "ece",
-                 "electronicsandcommunication",
-                 "electronicsandcommunicationengineering" ->
-                    "ece";
-
-            case "eee",
-                 "electricalandelectronics",
-                 "electricalandelectronicsengineering" ->
-                    "eee";
-
-            case "me",
-                 "mechanical",
-                 "mechanicalengineering" ->
-                    "me";
-
-            case "ce",
-                 "civil",
-                 "civilengineering" ->
-                    "ce";
-
-            default ->
-                    normalized;
-        };
-    }
-
-    private boolean matchesDegree(
-            StudentProfile student,
-            Job job) {
-
-        if (job.getRequiredDegree() == null
-                || job.getRequiredDegree().isBlank()) {
-
-            return true;
-        }
-
-        if (student.getDegree() == null
-                || student.getDegree().isBlank()) {
-
-            return false;
-        }
-
-        return student.getDegree()
-                .trim()
-                .equalsIgnoreCase(
-                        job.getRequiredDegree()
-                                .trim()
-                );
     }
 
     /*
@@ -297,27 +154,11 @@ public class ReadinessAssessmentEngine {
                             .getName()
                             .trim();
 
-            for (UserSkill userSkill
-                    : userSkills) {
+            if (skillMatchingEngine.hasSkill(
+                    requiredSkillName,
+                    userSkills)) {
 
-                if (userSkill == null
-                        || userSkill.getSkill() == null
-                        || userSkill.getSkill().getName() == null) {
-
-                    continue;
-                }
-
-                String userSkillName =
-                        userSkill.getSkill()
-                                .getName()
-                                .trim();
-
-                if (requiredSkillName.equalsIgnoreCase(
-                        userSkillName)) {
-
-                    matchedSkills++;
-                    break;
-                }
+                matchedSkills++;
             }
         }
 
@@ -359,85 +200,16 @@ public class ReadinessAssessmentEngine {
             return 20.0;
         }
 
-        if (userSkills == null
-                || userSkills.isEmpty()) {
-
-            return 0.0;
-        }
-
-        if (job.getRequiredSkills() == null
-                || job.getRequiredSkills().isEmpty()) {
-
-            return 0.0;
-        }
-
-        List<Double> relevantExperience =
-                new ArrayList<>();
-
-        for (JobRequiredSkill requiredSkill
-                : job.getRequiredSkills()) {
-
-            if (requiredSkill == null
-                    || requiredSkill.getSkill() == null
-                    || requiredSkill.getSkill().getName() == null) {
-
-                continue;
-            }
-
-            String requiredSkillName =
-                    requiredSkill.getSkill()
-                            .getName()
-                            .trim();
-
-            for (UserSkill userSkill
-                    : userSkills) {
-
-                if (userSkill == null
-                        || userSkill.getSkill() == null
-                        || userSkill.getSkill().getName() == null) {
-
-                    continue;
-                }
-
-                String userSkillName =
-                        userSkill.getSkill()
-                                .getName()
-                                .trim();
-
-                if (requiredSkillName.equalsIgnoreCase(
-                        userSkillName)) {
-
-                    Double experience =
-                            userSkill.getYearsOfExperience();
-
-                    if (experience != null
-                            && experience >= 0.0) {
-
-                        relevantExperience.add(
-                                experience
+        Double averageExperience =
+                experienceMatchingEngine
+                        .calculateAverageRelevantExperience(
+                                userSkills,
+                                job
                         );
-                    }
 
-                    break;
-                }
-            }
-        }
-
-        if (relevantExperience.isEmpty()) {
+        if (averageExperience == null) {
             return 0.0;
         }
-
-        double totalExperience = 0.0;
-
-        for (Double experience
-                : relevantExperience) {
-
-            totalExperience += experience;
-        }
-
-        double averageExperience =
-                totalExperience
-                        / relevantExperience.size();
 
         double experienceRatio =
                 averageExperience

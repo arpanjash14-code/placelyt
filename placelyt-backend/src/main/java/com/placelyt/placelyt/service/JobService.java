@@ -28,8 +28,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -187,19 +189,19 @@ public class JobService {
         return toResponse(job);
     }
 
-    public List<JobResponse> getJobsByCompanyId(
-            Long companyId) {
+   public List<JobResponse> getJobsByCompanyId(
+        Long companyId) {
 
-        if (!companyRepository.existsById(companyId)) {
-            throw new CompanyNotFoundException("Company not found");
-        }
+    List<Job> jobs = jobRepository.findByCompanyId(companyId);
 
-        return jobRepository.findByCompanyId(companyId)
-                .stream()
-                .map(this::toResponse)
-                .collect(Collectors.toList());
+    if (jobs.isEmpty() && !companyRepository.existsById(companyId)) {
+        throw new CompanyNotFoundException("Company not found");
     }
 
+    return jobs.stream()
+            .map(this::toResponse)
+            .collect(Collectors.toList());
+}
     @Transactional
     public JobResponse updateJob(
             Long jobId,
@@ -267,18 +269,25 @@ public class JobService {
         }
 
         /*
+         * Load all required skills in one database operation.
+         */
+        Map<Long, Skill> skillsById =
+                loadSkillsById(request.getRequiredSkillIds());
+
+        /*
          * Add the new required skills.
          */
         if (request.getRequiredSkillIds() != null) {
 
             for (Long skillId : request.getRequiredSkillIds()) {
 
-                Skill skill = skillRepository.findById(skillId)
-                        .orElseThrow(() ->
-                                new SkillNotFoundException(
-                                        "Skill not found: " + skillId
-                                )
-                        );
+                Skill skill = skillsById.get(skillId);
+
+                if (skill == null) {
+                    throw new SkillNotFoundException(
+                            "Skill not found: " + skillId
+                    );
+                }
 
                 JobRequiredSkill requiredSkill =
                         new JobRequiredSkill();
@@ -420,18 +429,25 @@ public class JobService {
         }
 
         /*
+         * Load all required skills in one database operation.
+         */
+        Map<Long, Skill> skillsById =
+                loadSkillsById(request.getRequiredSkillIds());
+
+        /*
          * Add required skills during job creation.
          */
         if (request.getRequiredSkillIds() != null) {
 
             for (Long skillId : request.getRequiredSkillIds()) {
 
-                Skill skill = skillRepository.findById(skillId)
-                        .orElseThrow(() ->
-                                new SkillNotFoundException(
-                                        "Skill not found: " + skillId
-                                )
-                        );
+                Skill skill = skillsById.get(skillId);
+
+                if (skill == null) {
+                    throw new SkillNotFoundException(
+                            "Skill not found: " + skillId
+                    );
+                }
 
                 JobRequiredSkill requiredSkill =
                         new JobRequiredSkill();
@@ -443,6 +459,23 @@ public class JobService {
                         .add(requiredSkill);
             }
         }
+    }
+
+    private Map<Long, Skill> loadSkillsById(
+            List<Long> skillIds) {
+
+        if (skillIds == null || skillIds.isEmpty()) {
+            return new HashMap<>();
+        }
+
+        List<Skill> skills =
+                skillRepository.findAllById(skillIds);
+
+        return skills.stream()
+                .collect(Collectors.toMap(
+                        Skill::getId,
+                        skill -> skill
+                ));
     }
 
     private JobResponse toResponse(Job job) {

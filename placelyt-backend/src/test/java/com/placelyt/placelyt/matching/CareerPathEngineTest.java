@@ -26,8 +26,12 @@ class CareerPathEngineTest {
 
     @BeforeEach
     void setUp() {
+
         careerPathEngine =
-                new CareerPathEngine(careerPathSkillRepository);
+                new CareerPathEngine(
+                        careerPathSkillRepository,
+                        new SkillMatchingEngine()
+                );
     }
 
     @Test
@@ -239,18 +243,18 @@ class CareerPathEngineTest {
     }
 
     @Test
-void shouldReturnEmptyMatchedSkillsWhenUserHasNoSkills() {
+    void shouldReturnEmptyMatchedSkillsWhenUserHasNoSkills() {
 
-    CareerPath careerPath = createCareerPath(1L);
+        CareerPath careerPath = createCareerPath(1L);
 
-    List<String> matchedSkills =
-            careerPathEngine.getMatchedSkills(
-                    careerPath,
-                    List.of()
-            );
+        List<String> matchedSkills =
+                careerPathEngine.getMatchedSkills(
+                        careerPath,
+                        List.of()
+                );
 
-    assertTrue(matchedSkills.isEmpty());
-}
+        assertTrue(matchedSkills.isEmpty());
+    }
 
     @Test
     void shouldReturnAllSkillsAsMissingWhenUserHasNoSkills() {

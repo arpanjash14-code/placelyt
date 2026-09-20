@@ -4,17 +4,22 @@ import com.placelyt.placelyt.dto.CareerDirectionResponse;
 import com.placelyt.placelyt.dto.CareerPathAlternativeResponse;
 import com.placelyt.placelyt.dto.CareerPathResponse;
 import com.placelyt.placelyt.entity.CareerPath;
+import com.placelyt.placelyt.entity.CareerPathSkill;
 import com.placelyt.placelyt.entity.UserSkill;
 import com.placelyt.placelyt.matching.CareerPathEngine;
 import com.placelyt.placelyt.repository.CareerPathRepository;
+import com.placelyt.placelyt.repository.CareerPathSkillRepository;
 import com.placelyt.placelyt.repository.StudentProfileRepository;
 import com.placelyt.placelyt.repository.UserSkillRepository;
 import org.springframework.stereotype.Service;
 
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 public class CareerPathService {
@@ -22,12 +27,14 @@ public class CareerPathService {
     private final StudentProfileRepository studentProfileRepository;
     private final UserSkillRepository userSkillRepository;
     private final CareerPathRepository careerPathRepository;
+    private final CareerPathSkillRepository careerPathSkillRepository;
     private final CareerPathEngine careerPathEngine;
 
     public CareerPathService(
             StudentProfileRepository studentProfileRepository,
             UserSkillRepository userSkillRepository,
             CareerPathRepository careerPathRepository,
+            CareerPathSkillRepository careerPathSkillRepository,
             CareerPathEngine careerPathEngine) {
 
         this.studentProfileRepository =
@@ -38,6 +45,9 @@ public class CareerPathService {
 
         this.careerPathRepository =
                 careerPathRepository;
+
+        this.careerPathSkillRepository =
+                careerPathSkillRepository;
 
         this.careerPathEngine =
                 careerPathEngine;
@@ -58,11 +68,18 @@ public class CareerPathService {
         List<CareerPath> careerPaths =
                 careerPathRepository.findAll();
 
+        Map<Long, List<CareerPathSkill>> careerPathSkills =
+                loadCareerPathSkills(careerPaths);
+
         return careerPaths.stream()
                 .map(careerPath ->
                         createResponse(
                                 careerPath,
-                                userSkills
+                                userSkills,
+                                careerPathSkills.getOrDefault(
+                                        careerPath.getId(),
+                                        List.of()
+                                )
                         ))
                 .sorted(
                         Comparator.comparingDouble(
@@ -94,17 +111,27 @@ public class CareerPathService {
         List<UserSkill> userSkills =
                 userSkillRepository.findByUserId(userId);
 
+        List<CareerPath> careerPaths =
+                careerPathRepository.findAll();
+
+        Map<Long, List<CareerPathSkill>> careerPathSkills =
+                loadCareerPathSkills(careerPaths);
+
+        List<CareerPathSkill> targetRequiredSkills =
+                careerPathSkills.getOrDefault(
+                        targetCareerPathId,
+                        List.of()
+                );
+
         List<String> targetMatchedSkills =
                 careerPathEngine.getMatchedSkills(
                         targetCareerPath,
-                        userSkills
+                        userSkills,
+                        targetRequiredSkills
                 );
 
         Set<String> normalizedTargetSkills =
                 normalizeSkills(targetMatchedSkills);
-
-        List<CareerPath> careerPaths =
-                careerPathRepository.findAll();
 
         return careerPaths.stream()
                 .filter(careerPath ->
@@ -114,7 +141,11 @@ public class CareerPathService {
                         createAlternativeResponse(
                                 careerPath,
                                 userSkills,
-                                normalizedTargetSkills
+                                normalizedTargetSkills,
+                                careerPathSkills.getOrDefault(
+                                        careerPath.getId(),
+                                        List.of()
+                                )
                         ))
                 .filter(response ->
                         hasMeaningfulOverlap(
@@ -155,6 +186,9 @@ public class CareerPathService {
         List<CareerPath> careerPaths =
                 careerPathRepository.findAll();
 
+        Map<Long, List<CareerPathSkill>> careerPathSkills =
+                loadCareerPathSkills(careerPaths);
+
         CareerPath currentCareerPath =
                 careerPaths.stream()
                         .max(
@@ -163,7 +197,12 @@ public class CareerPathService {
                                                 careerPathEngine
                                                         .calculateReadiness(
                                                                 careerPath,
-                                                                userSkills
+                                                                userSkills,
+                                                                careerPathSkills
+                                                                        .getOrDefault(
+                                                                                careerPath.getId(),
+                                                                                List.of()
+                                                                        )
                                                         )
                                 )
                         )
@@ -174,7 +213,11 @@ public class CareerPathService {
                     null,
                     createResponse(
                             targetCareerPath,
-                            userSkills
+                            userSkills,
+                            careerPathSkills.getOrDefault(
+                                    targetCareerPathId,
+                                    List.of()
+                            )
                     )
             );
         }
@@ -182,13 +225,21 @@ public class CareerPathService {
         CareerPathResponse currentDirection =
                 createResponse(
                         currentCareerPath,
-                        userSkills
+                        userSkills,
+                        careerPathSkills.getOrDefault(
+                                currentCareerPath.getId(),
+                                List.of()
+                        )
                 );
 
         CareerPathResponse targetDirection =
                 createResponse(
                         targetCareerPath,
-                        userSkills
+                        userSkills,
+                        careerPathSkills.getOrDefault(
+                                targetCareerPathId,
+                                List.of()
+                        )
                 );
 
         return new CareerDirectionResponse(
@@ -199,24 +250,28 @@ public class CareerPathService {
 
     private CareerPathResponse createResponse(
             CareerPath careerPath,
-            List<UserSkill> userSkills) {
+            List<UserSkill> userSkills,
+            List<CareerPathSkill> requiredSkills) {
 
         double readinessScore =
                 careerPathEngine.calculateReadiness(
                         careerPath,
-                        userSkills
+                        userSkills,
+                        requiredSkills
                 );
 
         List<String> matchedSkills =
                 careerPathEngine.getMatchedSkills(
                         careerPath,
-                        userSkills
+                        userSkills,
+                        requiredSkills
                 );
 
         List<String> missingSkills =
                 careerPathEngine.getMissingSkills(
                         careerPath,
-                        userSkills
+                        userSkills,
+                        requiredSkills
                 );
 
         return new CareerPathResponse(
@@ -232,24 +287,28 @@ public class CareerPathService {
     private CareerPathAlternativeResponse createAlternativeResponse(
             CareerPath careerPath,
             List<UserSkill> userSkills,
-            Set<String> normalizedTargetSkills) {
+            Set<String> normalizedTargetSkills,
+            List<CareerPathSkill> requiredSkills) {
 
         double readinessScore =
                 careerPathEngine.calculateReadiness(
                         careerPath,
-                        userSkills
+                        userSkills,
+                        requiredSkills
                 );
 
         List<String> matchedSkills =
                 careerPathEngine.getMatchedSkills(
                         careerPath,
-                        userSkills
+                        userSkills,
+                        requiredSkills
                 );
 
         List<String> missingSkills =
                 careerPathEngine.getMissingSkills(
                         careerPath,
-                        userSkills
+                        userSkills,
+                        requiredSkills
                 );
 
         return new CareerPathAlternativeResponse(
@@ -259,6 +318,35 @@ public class CareerPathService {
                 matchedSkills,
                 missingSkills
         );
+    }
+
+    private Map<Long, List<CareerPathSkill>> loadCareerPathSkills(
+            List<CareerPath> careerPaths) {
+
+        if (careerPaths == null ||
+                careerPaths.isEmpty()) {
+
+            return Map.of();
+        }
+
+        List<Long> careerPathIds =
+                careerPaths.stream()
+                        .map(CareerPath::getId)
+                        .collect(Collectors.toList());
+
+        return careerPathSkillRepository
+                .findByCareerPathIdIn(careerPathIds)
+                .stream()
+                .collect(
+                        Collectors.groupingBy(
+                                careerPathSkill ->
+                                        careerPathSkill
+                                                .getCareerPath()
+                                                .getId(),
+                                HashMap::new,
+                                Collectors.toList()
+                        )
+                );
     }
 
     private boolean hasMeaningfulOverlap(

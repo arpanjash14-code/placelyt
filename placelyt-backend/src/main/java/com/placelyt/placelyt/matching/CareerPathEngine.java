@@ -13,11 +13,17 @@ import java.util.List;
 public class CareerPathEngine {
 
     private final CareerPathSkillRepository careerPathSkillRepository;
+    private final SkillMatchingEngine skillMatchingEngine;
 
     public CareerPathEngine(
-            CareerPathSkillRepository careerPathSkillRepository) {
+            CareerPathSkillRepository careerPathSkillRepository,
+            SkillMatchingEngine skillMatchingEngine) {
+
         this.careerPathSkillRepository =
                 careerPathSkillRepository;
+
+        this.skillMatchingEngine =
+                skillMatchingEngine;
     }
 
     public double calculateReadiness(
@@ -28,11 +34,27 @@ public class CareerPathEngine {
                 careerPathSkillRepository
                         .findByCareerPathId(careerPath.getId());
 
-        if (requiredSkills.isEmpty()) {
+        return calculateReadiness(
+                careerPath,
+                userSkills,
+                requiredSkills
+        );
+    }
+
+    public double calculateReadiness(
+            CareerPath careerPath,
+            List<UserSkill> userSkills,
+            List<CareerPathSkill> requiredSkills) {
+
+        if (requiredSkills == null ||
+                requiredSkills.isEmpty()) {
+
             return 0.0;
         }
 
-        if (userSkills == null || userSkills.isEmpty()) {
+        if (userSkills == null ||
+                userSkills.isEmpty()) {
+
             return 0.0;
         }
 
@@ -40,7 +62,14 @@ public class CareerPathEngine {
 
         for (CareerPathSkill requiredSkill : requiredSkills) {
 
-            if (hasSkill(
+            if (requiredSkill == null
+                    || requiredSkill.getSkill() == null
+                    || requiredSkill.getSkill().getName() == null) {
+
+                continue;
+            }
+
+            if (skillMatchingEngine.hasSkill(
                     requiredSkill.getSkill().getName(),
                     userSkills)) {
 
@@ -56,22 +85,53 @@ public class CareerPathEngine {
             CareerPath careerPath,
             List<UserSkill> userSkills) {
 
-        List<String> matchedSkills = new ArrayList<>();
-
-        if (userSkills == null || userSkills.isEmpty()) {
-            return matchedSkills;
-        }
-
         List<CareerPathSkill> requiredSkills =
                 careerPathSkillRepository
                         .findByCareerPathId(careerPath.getId());
 
+        return getMatchedSkills(
+                careerPath,
+                userSkills,
+                requiredSkills
+        );
+    }
+
+    public List<String> getMatchedSkills(
+            CareerPath careerPath,
+            List<UserSkill> userSkills,
+            List<CareerPathSkill> requiredSkills) {
+
+        List<String> matchedSkills =
+                new ArrayList<>();
+
+        if (userSkills == null ||
+                userSkills.isEmpty()) {
+
+            return matchedSkills;
+        }
+
+        if (requiredSkills == null ||
+                requiredSkills.isEmpty()) {
+
+            return matchedSkills;
+        }
+
         for (CareerPathSkill requiredSkill : requiredSkills) {
+
+            if (requiredSkill == null
+                    || requiredSkill.getSkill() == null
+                    || requiredSkill.getSkill().getName() == null) {
+
+                continue;
+            }
 
             String requiredSkillName =
                     requiredSkill.getSkill().getName();
 
-            if (hasSkill(requiredSkillName, userSkills)) {
+            if (skillMatchingEngine.hasSkill(
+                    requiredSkillName,
+                    userSkills)) {
+
                 matchedSkills.add(requiredSkillName);
             }
         }
@@ -83,51 +143,51 @@ public class CareerPathEngine {
             CareerPath careerPath,
             List<UserSkill> userSkills) {
 
-        List<String> missingSkills = new ArrayList<>();
-
         List<CareerPathSkill> requiredSkills =
                 careerPathSkillRepository
                         .findByCareerPathId(careerPath.getId());
 
+        return getMissingSkills(
+                careerPath,
+                userSkills,
+                requiredSkills
+        );
+    }
+
+    public List<String> getMissingSkills(
+            CareerPath careerPath,
+            List<UserSkill> userSkills,
+            List<CareerPathSkill> requiredSkills) {
+
+        List<String> missingSkills =
+                new ArrayList<>();
+
+        if (requiredSkills == null ||
+                requiredSkills.isEmpty()) {
+
+            return missingSkills;
+        }
+
         for (CareerPathSkill requiredSkill : requiredSkills) {
+
+            if (requiredSkill == null
+                    || requiredSkill.getSkill() == null
+                    || requiredSkill.getSkill().getName() == null) {
+
+                continue;
+            }
 
             String requiredSkillName =
                     requiredSkill.getSkill().getName();
 
-            if (!hasSkill(requiredSkillName, userSkills)) {
+            if (!skillMatchingEngine.hasSkill(
+                    requiredSkillName,
+                    userSkills)) {
+
                 missingSkills.add(requiredSkillName);
             }
         }
 
         return missingSkills;
-    }
-
-    private boolean hasSkill(
-            String requiredSkillName,
-            List<UserSkill> userSkills) {
-
-        if (requiredSkillName == null ||
-                userSkills == null) {
-
-            return false;
-        }
-
-        for (UserSkill userSkill : userSkills) {
-
-            if (userSkill == null ||
-                    userSkill.getSkill() == null ||
-                    userSkill.getSkill().getName() == null) {
-
-                continue;
-            }
-
-            if (requiredSkillName.equalsIgnoreCase(
-                    userSkill.getSkill().getName())) {
-
-                return true;
-            }
-        }
-
-        return false;
     }
 }

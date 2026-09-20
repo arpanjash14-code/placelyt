@@ -7,6 +7,7 @@ import com.placelyt.placelyt.entity.CareerPath;
 import com.placelyt.placelyt.entity.UserSkill;
 import com.placelyt.placelyt.matching.CareerPathEngine;
 import com.placelyt.placelyt.repository.CareerPathRepository;
+import com.placelyt.placelyt.repository.CareerPathSkillRepository;
 import com.placelyt.placelyt.repository.StudentProfileRepository;
 import com.placelyt.placelyt.repository.UserSkillRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -19,6 +20,12 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.anyList;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -31,24 +38,67 @@ class CareerPathServiceTest {
     @Mock
     private UserSkillRepository userSkillRepository;
 
-    @Mock
-    private CareerPathRepository careerPathRepository;
+   @Mock
+private CareerPathRepository careerPathRepository;
 
-    @Mock
-    private CareerPathEngine careerPathEngine;
+@Mock
+private CareerPathSkillRepository careerPathSkillRepository;
 
+@Mock
+private CareerPathEngine careerPathEngine;
     private CareerPathService careerPathService;
 
     @BeforeEach
-    void setUp() {
-        careerPathService =
-                new CareerPathService(
-                        studentProfileRepository,
-                        userSkillRepository,
-                        careerPathRepository,
-                        careerPathEngine
-                );
-    }
+void setUp() {
+
+    careerPathService =
+            new CareerPathService(
+                    studentProfileRepository,
+                    userSkillRepository,
+                    careerPathRepository,
+                    careerPathSkillRepository,
+                    careerPathEngine
+            );
+
+    lenient()
+            .doAnswer(invocation ->
+                    careerPathEngine.calculateReadiness(
+                            invocation.getArgument(0),
+                            invocation.getArgument(1)
+                    ))
+            .when(careerPathEngine)
+            .calculateReadiness(
+                    any(CareerPath.class),
+                    anyList(),
+                    anyList()
+            );
+
+    lenient()
+            .doAnswer(invocation ->
+                    careerPathEngine.getMatchedSkills(
+                            invocation.getArgument(0),
+                            invocation.getArgument(1)
+                    ))
+            .when(careerPathEngine)
+            .getMatchedSkills(
+                    any(CareerPath.class),
+                    anyList(),
+                    anyList()
+            );
+
+    lenient()
+            .doAnswer(invocation ->
+                    careerPathEngine.getMissingSkills(
+                            invocation.getArgument(0),
+                            invocation.getArgument(1)
+                    ))
+            .when(careerPathEngine)
+            .getMissingSkills(
+                    any(CareerPath.class),
+                    anyList(),
+                    anyList()
+            );
+}
 
     @Test
     void shouldReturnCareerPathsSortedByReadiness() {
