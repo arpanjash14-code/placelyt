@@ -3,11 +3,16 @@ package com.placelyt.placelyt.controller;
 import com.placelyt.placelyt.dto.LoginRequest;
 import com.placelyt.placelyt.dto.UserRequest;
 import com.placelyt.placelyt.dto.UserResponse;
+
+import com.placelyt.placelyt.dto.UpdateUserRequest;
 import com.placelyt.placelyt.service.UserService;
+import org.springframework.security.core.Authentication;
 
 import jakarta.validation.Valid;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -37,6 +42,28 @@ public UserResponse createUser(@Valid @RequestBody UserRequest request) {
     public ResponseEntity<List<UserResponse>> getAllUsers() {
         return ResponseEntity.ok(userService.getAllUsers());
     }
+
+    @GetMapping("/me")
+public ResponseEntity<UserResponse> getCurrentUser(
+        Authentication authentication) {
+
+    return ResponseEntity.ok(
+            userService.getCurrentUser(authentication.getName())
+    );
+}
+
+@PutMapping("/me")
+public ResponseEntity<UserResponse> updateCurrentUser(
+        Authentication authentication,
+        @Valid @RequestBody UpdateUserRequest request) {
+
+    return ResponseEntity.ok(
+            userService.updateCurrentUser(
+                    authentication.getName(),
+                    request
+            )
+    );
+}
 
     @GetMapping("/{id}")
     public ResponseEntity<UserResponse> getUserById(
