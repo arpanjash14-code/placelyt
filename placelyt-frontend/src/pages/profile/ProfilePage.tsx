@@ -1,5 +1,14 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import {
+  Check,
+  LogOut,
+  Pencil,
+  Save,
+  Shield,
+  User as UserIcon,
+  X,
+} from 'lucide-react'
 
 import { useAuth } from '../../context/AuthContext'
 import {
@@ -8,6 +17,8 @@ import {
 } from '../../services/user/userService'
 
 import type { User } from '../../types/user'
+
+import './ProfilePage.css'
 
 function ProfilePage() {
   const { logout } = useAuth()
@@ -102,81 +113,200 @@ function ProfilePage() {
   }
 
   if (isLoading) {
-    return <p>Loading profile...</p>
+    return (
+      <main className="profile-page">
+        <section className="profile-card profile-card--state">
+          <p>Loading profile...</p>
+        </section>
+      </main>
+    )
   }
 
   if (error) {
-    return <p role="alert">{error}</p>
+    return (
+      <main className="profile-page">
+        <section className="profile-card profile-card--state">
+          <p className="profile-message profile-message--error" role="alert">
+            {error}
+          </p>
+        </section>
+      </main>
+    )
   }
 
   if (!user) {
-    return <p role="alert">Profile information is unavailable.</p>
+    return (
+      <main className="profile-page">
+        <section className="profile-card profile-card--state">
+          <p className="profile-message profile-message--error" role="alert">
+            Profile information is unavailable.
+          </p>
+        </section>
+      </main>
+    )
   }
 
+  const initials = user.name
+    .trim()
+    .split(/\s+/)
+    .map((part) => part[0])
+    .join('')
+    .slice(0, 2)
+    .toUpperCase()
+
   return (
-    <main>
-      <h1>Profile</h1>
-
-      {!isEditing ? (
-        <>
-          <div>
-            <p>
-              <strong>Name:</strong> {user.name}
-            </p>
-
-            <p>
-              <strong>Email:</strong> {user.email}
-            </p>
-
-            <p>
-              <strong>Role:</strong> {user.role}
-            </p>
+    <main className="profile-page">
+      <section className="profile-card">
+        <header className="profile-header">
+          <div className="profile-avatar" aria-hidden="true">
+            {initials || 'U'}
           </div>
 
-          {saveSuccess && <p role="status">{saveSuccess}</p>}
-
-          <button type="button" onClick={handleEdit}>
-            Edit Profile
-          </button>
-        </>
-      ) : (
-        <>
-          <div>
-            <label htmlFor="profile-name">Name</label>
-
-            <input
-              id="profile-name"
-              type="text"
-              value={name}
-              onChange={(event) => setName(event.target.value)}
-              maxLength={100}
-              disabled={isSaving}
-            />
+          <div className="profile-header-content">
+            <p className="profile-eyebrow">Your account</p>
+            <h1>Profile</h1>
+            <p className="profile-subtitle">
+              Manage your personal information and account details.
+            </p>
           </div>
+        </header>
 
-          {saveError && <p role="alert">{saveError}</p>}
+        <div className="profile-divider" />
 
-          <button
-            type="button"
-            onClick={handleSave}
-            disabled={isSaving}
-          >
-            {isSaving ? 'Saving...' : 'Save Changes'}
-          </button>
+        {!isEditing ? (
+          <>
+            <div className="profile-identity">
+              <div>
+                <h2>{user.name}</h2>
+                <p>{user.role}</p>
+              </div>
+            </div>
 
-          <button
-            type="button"
-            onClick={handleCancel}
-            disabled={isSaving}
-          >
-            Cancel
-          </button>
-        </>
-      )}
+            <div className="profile-details">
+              <div className="profile-detail">
+                <div className="profile-detail-icon" aria-hidden="true">
+                  <UserIcon size={18} />
+                </div>
 
-      <button type="button" onClick={handleLogout}>
-        Logout
-      </button>
+                <div>
+                  <span className="profile-detail-label">Name</span>
+                  <span className="profile-detail-value">{user.name}</span>
+                </div>
+              </div>
+
+              <div className="profile-detail">
+                <div className="profile-detail-icon" aria-hidden="true">
+                  <Shield size={18} />
+                </div>
+
+                <div>
+                  <span className="profile-detail-label">Email</span>
+                  <span className="profile-detail-value">
+                    {user.email}
+                  </span>
+                </div>
+              </div>
+
+              <div className="profile-detail">
+                <div className="profile-detail-icon" aria-hidden="true">
+                  <Shield size={18} />
+                </div>
+
+                <div>
+                  <span className="profile-detail-label">Role</span>
+                  <span className="profile-detail-value">
+                    {user.role}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {saveSuccess && (
+              <p className="profile-message profile-message--success" role="status">
+                <Check size={17} aria-hidden="true" />
+                {saveSuccess}
+              </p>
+            )}
+
+            <div className="profile-actions">
+              <button
+                className="profile-button profile-button--primary"
+                type="button"
+                onClick={handleEdit}
+              >
+                <Pencil size={17} aria-hidden="true" />
+                Edit Profile
+              </button>
+
+              <button
+                className="profile-button profile-button--secondary"
+                type="button"
+                onClick={handleLogout}
+              >
+                <LogOut size={17} aria-hidden="true" />
+                Logout
+              </button>
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="profile-edit-header">
+              <div>
+                <h2>Edit Profile</h2>
+                <p>Update the name displayed on your account.</p>
+              </div>
+            </div>
+
+            <div className="profile-form">
+              <div className="profile-field">
+                <label htmlFor="profile-name">Name</label>
+
+                <input
+                  id="profile-name"
+                  type="text"
+                  value={name}
+                  onChange={(event) => setName(event.target.value)}
+                  maxLength={100}
+                  disabled={isSaving}
+                  autoFocus
+                />
+
+                <span className="profile-field-hint">
+                  Maximum 100 characters.
+                </span>
+              </div>
+            </div>
+
+            {saveError && (
+              <p className="profile-message profile-message--error" role="alert">
+                {saveError}
+              </p>
+            )}
+
+            <div className="profile-actions">
+              <button
+                className="profile-button profile-button--primary"
+                type="button"
+                onClick={handleSave}
+                disabled={isSaving}
+              >
+                <Save size={17} aria-hidden="true" />
+                {isSaving ? 'Saving...' : 'Save Changes'}
+              </button>
+
+              <button
+                className="profile-button profile-button--secondary"
+                type="button"
+                onClick={handleCancel}
+                disabled={isSaving}
+              >
+                <X size={17} aria-hidden="true" />
+                Cancel
+              </button>
+            </div>
+          </>
+        )}
+      </section>
     </main>
   )
 }
