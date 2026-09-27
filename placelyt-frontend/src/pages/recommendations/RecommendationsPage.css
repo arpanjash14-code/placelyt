@@ -1,0 +1,203 @@
+.recommendations-page {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 32px;
+  color: #1e293b;
+}
+
+.recommendations-header {
+  margin-bottom: 32px;
+}
+
+.recommendations-header h1 {
+  margin: 0 0 8px;
+  font-size: 2rem;
+  font-weight: 700;
+}
+
+.recommendations-header p {
+  margin: 0;
+  color: #64748b;
+  font-size: 1rem;
+}
+
+.recommendations-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 24px;
+}
+
+.recommendation-card {
+  padding: 24px;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  background: #ffffff;
+  box-shadow: 0 4px 12px rgb(15 23 42 / 5%);
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.recommendation-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 24px rgb(15 23 42 / 10%);
+}
+
+.recommendation-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.recommendation-card-header h2 {
+  margin: 0 0 6px;
+  font-size: 1.25rem;
+  font-weight: 650;
+}
+
+.recommendation-company {
+  margin: 0;
+  color: #64748b;
+  font-size: 0.95rem;
+}
+
+.recommendation-score {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  white-space: nowrap;
+}
+
+.recommendation-score span {
+  color: #64748b;
+  font-size: 0.8rem;
+}
+
+.recommendation-score strong {
+  color: #2563eb;
+  font-size: 1.5rem;
+}
+
+.recommendation-score-bar {
+  height: 8px;
+  margin: 20px 0;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #e2e8f0;
+}
+
+.recommendation-score-fill {
+  height: 100%;
+  border-radius: inherit;
+  background: #2563eb;
+  transition: width 0.3s ease;
+}
+
+.recommendation-eligibility {
+  margin-bottom: 24px;
+}
+
+.eligibility-badge {
+  display: inline-block;
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.eligibility-badge.eligible {
+  color: #15803d;
+  background: #dcfce7;
+}
+
+.eligibility-badge.not-eligible {
+  color: #b91c1c;
+  background: #fee2e2;
+}
+
+.recommendation-skills {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  padding-top: 20px;
+  border-top: 1px solid #e2e8f0;
+}
+
+.recommendation-skill-group h3 {
+  margin: 0 0 12px;
+  font-size: 0.95rem;
+  font-weight: 650;
+}
+
+.skill-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.skill-list li {
+  padding: 6px 10px;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+.matched-skills li {
+  color: #15803d;
+  background: #dcfce7;
+}
+
+.missing-skills li {
+  color: #b45309;
+  background: #fef3c7;
+}
+
+.no-skills {
+  margin: 0;
+  color: #94a3b8;
+  font-size: 0.85rem;
+}
+
+.recommendations-state {
+  padding: 40px 24px;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  background: #ffffff;
+  text-align: center;
+  color: #64748b;
+}
+
+.recommendations-state h2 {
+  margin-top: 0;
+  color: #1e293b;
+}
+
+.recommendations-error {
+  color: #b91c1c;
+  background: #fef2f2;
+  border-color: #fecaca;
+}
+
+@media (max-width: 640px) {
+  .recommendations-page {
+    padding: 20px 16px;
+  }
+
+  .recommendations-list {
+    grid-template-columns: 1fr;
+  }
+
+  .recommendation-card {
+    padding: 20px;
+  }
+
+  .recommendation-skills {
+    grid-template-columns: 1fr;
+  }
+}
