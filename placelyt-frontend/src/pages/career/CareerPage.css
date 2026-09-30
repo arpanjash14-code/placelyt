@@ -1,0 +1,458 @@
+/* Main page */
+.career-page {
+  width: 100%;
+  min-height: 100vh;
+  padding: 36px;
+  box-sizing: border-box;
+  background: #f4f7fc;
+  color: #1e293b;
+}
+
+/* Page header */
+.career-header {
+  margin-bottom: 30px;
+}
+
+.career-header h1 {
+  font-size: 30px;
+  margin-bottom: 8px;
+}
+
+.career-header p {
+  color: #64748b;
+  font-size: 16px;
+}
+
+/* Career cards grid */
+.career-grid {
+  display: grid;
+  width: 100%;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 24px;
+  align-items: start;
+}
+
+/* Individual career card */
+.career-card {
+  align-self: start;
+  min-width: 0;
+  height: fit-content;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  padding: 24px;
+  box-sizing: border-box;
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.04);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.career-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 22px rgba(15, 23, 42, 0.08);
+}
+
+.career-card h2 {
+  font-size: 21px;
+  margin: 0 0 12px;
+}
+
+/* Career description */
+.career-description {
+  color: #64748b;
+  line-height: 1.6;
+  margin-bottom: 20px;
+}
+
+/* Career readiness */
+.readiness-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+  font-weight: 600;
+}
+
+.readiness-track {
+  height: 10px;
+  background: #e2e8f0;
+  border-radius: 20px;
+  overflow: hidden;
+  margin-bottom: 22px;
+}
+
+.readiness-fill {
+  height: 100%;
+  background: #625cf5;
+  border-radius: 20px;
+  transition: width 0.3s ease;
+}
+
+/* Skills */
+.skill-section {
+  margin-top: 20px;
+}
+
+.skill-section h3 {
+  font-size: 15px;
+  margin-bottom: 12px;
+}
+
+.skill-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 0;
+  list-style: none;
+}
+
+.skill-badge {
+  padding: 7px 12px;
+  border-radius: 20px;
+  font-size: 13px;
+  background: #eef2ff;
+  color: #4338ca;
+  border: 1px solid #c7d2fe;
+}
+
+.missing-skill {
+  background: #fff7ed;
+  color: #c2410c;
+  border-color: #fed7aa;
+}
+
+/* Loading and error messages */
+.career-message {
+  color: #64748b;
+  padding: 20px 0;
+}
+
+.error-message {
+  color: #dc2626;
+}
+
+/* Alternatives button */
+.alternatives-button {
+  width: 100%;
+  margin-top: 24px;
+  padding: 11px 16px;
+  border: none;
+  border-radius: 10px;
+  background: #625cf5;
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.alternatives-button:hover:not(:disabled) {
+  background: #4f46e5;
+}
+
+.alternatives-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Career alternatives */
+.alternatives-section {
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 1px solid #e2e8f0;
+}
+
+.alternatives-section h3 {
+  margin-bottom: 16px;
+  font-size: 17px;
+}
+
+.alternative-card {
+  padding: 16px;
+  margin-bottom: 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  background: #f8fafc;
+}
+
+.alternative-card h4 {
+  margin: 0 0 8px;
+  font-size: 16px;
+}
+
+.alternative-card p {
+  margin: 6px 0;
+  color: #64748b;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.alternative-readiness {
+  margin-bottom: 8px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+/* Career guidance */
+.guidance-section {
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 1px solid #e2e8f0;
+}
+
+.guidance-section > h3 {
+  margin-bottom: 20px;
+  font-size: 18px;
+}
+
+.guidance-group {
+  margin-top: 20px;
+}
+
+.guidance-group h4 {
+  margin-bottom: 12px;
+  font-size: 15px;
+}
+
+.guidance-card {
+  padding: 14px;
+  margin-bottom: 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  background: #f8fafc;
+}
+
+.guidance-card h5 {
+  margin: 0 0 8px;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.guidance-card p {
+  margin: 6px 0 12px;
+  color: #64748b;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.guidance-list {
+  padding-left: 20px;
+  margin: 0;
+}
+
+.guidance-list li {
+  margin-bottom: 8px;
+  color: #334155;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+/* Tablet layout */
+@media (max-width: 1000px) {
+  .career-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* Mobile layout */
+@media (max-width: 600px) {
+  .career-page {
+    padding: 20px;
+  }
+
+  .career-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .career-header h1 {
+    font-size: 26px;
+  }
+}
+
+/* Career Guidance Floating Modal */
+
+.guidance-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(15, 23, 42, 0.55);
+  backdrop-filter: blur(4px);
+}
+
+.guidance-modal {
+  display: flex;
+  flex-direction: column;
+  width: min(600px, 100%);
+  max-height: min(720px, 85vh);
+  overflow: hidden;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 20px;
+  box-shadow: 0 24px 70px rgba(15, 23, 42, 0.25);
+  animation: guidance-modal-appear 0.2s ease-out;
+}
+
+@keyframes guidance-modal-appear {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.98);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.guidance-modal-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 24px 28px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.guidance-modal-eyebrow {
+  color: #625cf5;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1.2px;
+}
+
+.guidance-modal-header h2 {
+  margin: 8px 0 5px;
+  color: #1e293b;
+  font-size: 23px;
+}
+
+.guidance-modal-header p {
+  margin: 0;
+  color: #64748b;
+  font-size: 14px;
+}
+
+.guidance-modal-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  border: none;
+  border-radius: 10px;
+  background: #f1f5f9;
+  color: #475569;
+  font-size: 26px;
+  line-height: 1;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.guidance-modal-close:hover {
+  background: #e2e8f0;
+}
+
+.guidance-modal-content {
+  overflow-y: auto;
+  padding: 8px 28px 24px;
+}
+
+.guidance-modal-content .guidance-group {
+  margin-top: 22px;
+}
+
+.guidance-modal-content .guidance-group h3 {
+  margin: 0 0 14px;
+  color: #1e293b;
+  font-size: 16px;
+}
+
+.guidance-modal-content .guidance-card {
+  margin-bottom: 12px;
+  padding: 16px;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  background: #f8fafc;
+}
+
+.guidance-modal-content .guidance-card h4 {
+  margin: 0 0 8px;
+  color: #1e293b;
+  font-size: 14px;
+}
+
+.guidance-modal-content .guidance-card p {
+  margin: 6px 0 12px;
+  color: #64748b;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.guidance-modal-content .guidance-list {
+  padding-left: 22px;
+  margin: 0;
+}
+
+.guidance-modal-content .guidance-list li {
+  margin-bottom: 10px;
+  color: #334155;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.guidance-modal-message {
+  padding: 32px 0;
+  color: #64748b;
+  text-align: center;
+  line-height: 1.6;
+}
+
+.guidance-modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  padding: 16px 28px;
+  border-top: 1px solid #e2e8f0;
+  background: #ffffff;
+}
+
+.guidance-modal-done {
+  padding: 10px 24px;
+  border: none;
+  border-radius: 10px;
+  background: #625cf5;
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.guidance-modal-done:hover {
+  background: #4f46e5;
+}
+
+@media (max-width: 600px) {
+  .guidance-modal-overlay {
+    padding: 12px;
+  }
+
+  .guidance-modal {
+    max-height: 90vh;
+  }
+
+  .guidance-modal-header {
+    padding: 20px;
+  }
+
+  .guidance-modal-content {
+    padding: 4px 20px 20px;
+  }
+
+  .guidance-modal-footer {
+    padding: 14px 20px;
+  }
+}
