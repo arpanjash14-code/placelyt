@@ -16,8 +16,6 @@ private String email;
 @NotBlank(message = "Password is required")
 private String password;
 
-@NotBlank(message = "Role is required")
-private String role;
 
     public UserRequest() {
     }
@@ -46,11 +44,4 @@ private String role;
         this.password = password;
     }
 
-    public String getRole() {
-        return role;
-    }
-
-    public void setRole(String role) {
-        this.role = role;
-    }
 }

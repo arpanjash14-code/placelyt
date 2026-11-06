@@ -40,7 +40,8 @@ public class UserService {
         user.setName(request.getName());
         user.setEmail(request.getEmail());
         user.setPassword(passwordEncoder.encode(request.getPassword()));
-        user.setRole(request.getRole());
+        // Public registration must never choose its own authority.
+        user.setRole("STUDENT");
 
         User savedUser = userRepository.save(user);
 

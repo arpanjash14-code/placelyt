@@ -56,7 +56,6 @@ function RegisterPage() {
         name,
         email,
         password,
-        role: 'STUDENT',
       })
 
       navigate('/login', { replace: true })
