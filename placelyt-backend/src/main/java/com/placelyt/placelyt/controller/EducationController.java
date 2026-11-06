@@ -1,8 +1,11 @@
+
 package com.placelyt.placelyt.controller;
 
 import com.placelyt.placelyt.dto.EducationResponse;
 import com.placelyt.placelyt.entity.Education;
+import com.placelyt.placelyt.service.AuthenticatedUserService;
 import com.placelyt.placelyt.service.EducationService;
+
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -13,15 +16,22 @@ import java.util.List;
 public class EducationController {
 
     private final EducationService educationService;
+    private final AuthenticatedUserService authenticatedUserService;
 
-    public EducationController(EducationService educationService) {
+    public EducationController(
+            EducationService educationService,
+            AuthenticatedUserService authenticatedUserService) {
+
         this.educationService = educationService;
+        this.authenticatedUserService = authenticatedUserService;
     }
 
     @PostMapping("/{userId}")
     public ResponseEntity<EducationResponse> createEducation(
             @PathVariable Long userId,
             @RequestBody Education education) {
+
+        authenticatedUserService.requireCurrentUser(userId);
 
         return ResponseEntity.ok(
                 educationService.createEducation(userId, education)
@@ -31,6 +41,8 @@ public class EducationController {
     @GetMapping("/{userId}")
     public ResponseEntity<List<EducationResponse>> getEducation(
             @PathVariable Long userId) {
+
+        authenticatedUserService.requireCurrentUser(userId);
 
         return ResponseEntity.ok(
                 educationService.getEducationByUserId(userId)
@@ -42,6 +54,8 @@ public class EducationController {
             @PathVariable Long userId,
             @PathVariable Long educationId,
             @RequestBody Education education) {
+
+        authenticatedUserService.requireCurrentUser(userId);
 
         return ResponseEntity.ok(
                 educationService.updateEducation(
@@ -56,6 +70,8 @@ public class EducationController {
     public ResponseEntity<Void> deleteEducation(
             @PathVariable Long userId,
             @PathVariable Long educationId) {
+
+        authenticatedUserService.requireCurrentUser(userId);
 
         educationService.deleteEducation(
                 userId,

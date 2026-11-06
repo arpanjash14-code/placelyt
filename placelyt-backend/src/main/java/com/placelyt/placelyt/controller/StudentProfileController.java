@@ -1,8 +1,11 @@
+
 package com.placelyt.placelyt.controller;
 
 import com.placelyt.placelyt.dto.StudentProfileResponse;
 import com.placelyt.placelyt.entity.StudentProfile;
+import com.placelyt.placelyt.service.AuthenticatedUserService;
 import com.placelyt.placelyt.service.StudentProfileService;
+
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -11,16 +14,22 @@ import org.springframework.web.bind.annotation.*;
 public class StudentProfileController {
 
     private final StudentProfileService studentProfileService;
+    private final AuthenticatedUserService authenticatedUserService;
 
     public StudentProfileController(
-            StudentProfileService studentProfileService) {
+            StudentProfileService studentProfileService,
+            AuthenticatedUserService authenticatedUserService) {
+
         this.studentProfileService = studentProfileService;
+        this.authenticatedUserService = authenticatedUserService;
     }
 
     @PostMapping("/{userId}")
     public ResponseEntity<StudentProfileResponse> createProfile(
             @PathVariable Long userId,
             @RequestBody StudentProfile profile) {
+
+        authenticatedUserService.requireCurrentUser(userId);
 
         return ResponseEntity.ok(
                 studentProfileService.createProfile(userId, profile)
@@ -31,6 +40,8 @@ public class StudentProfileController {
     public ResponseEntity<StudentProfileResponse> getProfile(
             @PathVariable Long userId) {
 
+        authenticatedUserService.requireCurrentUser(userId);
+
         return ResponseEntity.ok(
                 studentProfileService.getProfileByUserId(userId)
         );
@@ -40,6 +51,8 @@ public class StudentProfileController {
     public ResponseEntity<StudentProfileResponse> updateProfile(
             @PathVariable Long userId,
             @RequestBody StudentProfile profile) {
+
+        authenticatedUserService.requireCurrentUser(userId);
 
         return ResponseEntity.ok(
                 studentProfileService.updateProfile(userId, profile)
