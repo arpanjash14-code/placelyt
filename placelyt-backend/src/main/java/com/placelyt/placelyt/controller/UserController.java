@@ -11,9 +11,8 @@ import org.springframework.security.core.Authentication;
 import jakarta.validation.Valid;
 
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.security.access.prepost.PreAuthorize;
 
 import java.util.List;
 
@@ -37,7 +36,7 @@ public UserResponse createUser(@Valid @RequestBody UserRequest request) {
     }
 
     
-
+    @PreAuthorize("hasRole('ADMIN')")
     @GetMapping
     public ResponseEntity<List<UserResponse>> getAllUsers() {
         return ResponseEntity.ok(userService.getAllUsers());
@@ -64,7 +63,7 @@ public ResponseEntity<UserResponse> updateCurrentUser(
             )
     );
 }
-
+    @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/{id}")
     public ResponseEntity<UserResponse> getUserById(
             @PathVariable Long id) {

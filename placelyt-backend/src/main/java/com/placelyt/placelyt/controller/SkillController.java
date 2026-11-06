@@ -5,6 +5,7 @@ import com.placelyt.placelyt.entity.Skill;
 import com.placelyt.placelyt.service.SkillService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.security.access.prepost.PreAuthorize;
 
 import java.util.List;
 
@@ -17,7 +18,8 @@ public class SkillController {
     public SkillController(SkillService skillService) {
         this.skillService = skillService;
     }
-
+    
+    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping
     public ResponseEntity<SkillResponse> createSkill(
             @RequestBody Skill skill) {

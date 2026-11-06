@@ -5,6 +5,7 @@ import com.placelyt.placelyt.entity.Company;
 import com.placelyt.placelyt.service.CompanyService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.security.access.prepost.PreAuthorize;
 
 import java.util.List;
 
@@ -18,6 +19,7 @@ public class CompanyController {
         this.companyService = companyService;
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping
     public ResponseEntity<CompanyResponse> createCompany(
             @RequestBody Company company) {
@@ -43,7 +45,7 @@ public class CompanyController {
                 companyService.getCompanyById(companyId)
         );
     }
-
+    @PreAuthorize("hasRole('ADMIN')")
     @PutMapping("/{companyId}")
     public ResponseEntity<CompanyResponse> updateCompany(
             @PathVariable Long companyId,
@@ -56,7 +58,7 @@ public class CompanyController {
                 )
         );
     }
-
+    @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/{companyId}")
     public ResponseEntity<Void> deleteCompany(
             @PathVariable Long companyId) {
