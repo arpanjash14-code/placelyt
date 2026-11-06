@@ -14,6 +14,7 @@ import com.placelyt.placelyt.matching.CareerPathEngine;
 import com.placelyt.placelyt.repository.CareerPathRepository;
 import com.placelyt.placelyt.repository.UserSkillRepository;
 import com.placelyt.placelyt.service.CareerPathService;
+import com.placelyt.placelyt.service.AuthenticatedUserService;
 import com.placelyt.placelyt.service.SkillIntelligenceService;
 import org.junit.jupiter.api.Test;
 
@@ -109,8 +110,9 @@ class CareerAIControllerTest {
                 careerPathEngine,
                 aiService,
                 skillIntelligenceService,
-                careerPathService
-        );
+                careerPathService,
+                        mock(AuthenticatedUserService.class)
+                );
 
         var response =
                 controller.getCareerPathAIExplanation(
@@ -210,7 +212,8 @@ class CareerAIControllerTest {
                         careerPathEngine,
                         aiService,
                         skillIntelligenceService,
-                        careerPathService
+                        careerPathService,
+                        mock(AuthenticatedUserService.class)
                 );
 
         var response =
@@ -334,7 +337,8 @@ class CareerAIControllerTest {
                         careerPathEngine,
                         aiService,
                         skillIntelligenceService,
-                        careerPathService
+                        careerPathService,
+                        mock(AuthenticatedUserService.class)
                 );
 
         var response =
@@ -432,7 +436,8 @@ class CareerAIControllerTest {
                         careerPathEngine,
                         aiService,
                         skillIntelligenceService,
-                        careerPathService
+                        careerPathService,
+                        mock(AuthenticatedUserService.class)
                 );
 
         var response =
@@ -542,7 +547,8 @@ class CareerAIControllerTest {
                         careerPathEngine,
                         aiService,
                         skillIntelligenceService,
-                        careerPathService
+                        careerPathService,
+                        mock(AuthenticatedUserService.class)
                 );
 
         var response =
@@ -721,7 +727,8 @@ class CareerAIControllerTest {
                         careerPathEngine,
                         aiService,
                         skillIntelligenceService,
-                        careerPathService
+                        careerPathService,
+                        mock(AuthenticatedUserService.class)
                 );
 
         var response =
@@ -913,7 +920,8 @@ class CareerAIControllerTest {
                         careerPathEngine,
                         aiService,
                         skillIntelligenceService,
-                        careerPathService
+                        careerPathService,
+                        mock(AuthenticatedUserService.class)
                 );
 
         controller.getCareerGuidance(
@@ -979,7 +987,8 @@ class CareerAIControllerTest {
                         careerPathEngine,
                         aiService,
                         skillIntelligenceService,
-                        careerPathService
+                        careerPathService,
+                        mock(AuthenticatedUserService.class)
                 );
 
         IllegalArgumentException exception =
@@ -1074,7 +1083,8 @@ class CareerAIControllerTest {
                         careerPathEngine,
                         aiService,
                         skillIntelligenceService,
-                        careerPathService
+                        careerPathService,
+                        mock(AuthenticatedUserService.class)
                 );
 
         var response =
@@ -1216,7 +1226,8 @@ class CareerAIControllerTest {
                         careerPathEngine,
                         aiService,
                         skillIntelligenceService,
-                        careerPathService
+                        careerPathService,
+                        mock(AuthenticatedUserService.class)
                 );
 
         controller.getSkillIntelligence(4L);
@@ -1297,7 +1308,8 @@ class CareerAIControllerTest {
                         careerPathEngine,
                         aiService,
                         skillIntelligenceService,
-                        careerPathService
+                        careerPathService,
+                        mock(AuthenticatedUserService.class)
                 );
 
         controller.getSkillIntelligence(4L);

@@ -1,7 +1,10 @@
+
 package com.placelyt.placelyt.controller;
 
 import com.placelyt.placelyt.dto.JobRecommendationResponse;
+import com.placelyt.placelyt.service.AuthenticatedUserService;
 import com.placelyt.placelyt.service.RecommendationService;
+
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -12,22 +15,24 @@ import java.util.List;
 public class RecommendationController {
 
     private final RecommendationService recommendationService;
+    private final AuthenticatedUserService authenticatedUserService;
 
     public RecommendationController(
-            RecommendationService recommendationService) {
+            RecommendationService recommendationService,
+            AuthenticatedUserService authenticatedUserService) {
 
-        this.recommendationService =
-                recommendationService;
+        this.recommendationService = recommendationService;
+        this.authenticatedUserService = authenticatedUserService;
     }
 
     @GetMapping("/jobs/{userId}")
     public ResponseEntity<List<JobRecommendationResponse>>
-    getJobRecommendations(
-            @PathVariable Long userId) {
+    getJobRecommendations(@PathVariable Long userId) {
+
+        authenticatedUserService.requireCurrentUser(userId);
 
         List<JobRecommendationResponse> recommendations =
-                recommendationService
-                        .getRecommendations(userId);
+                recommendationService.getRecommendations(userId);
 
         return ResponseEntity.ok(recommendations);
     }

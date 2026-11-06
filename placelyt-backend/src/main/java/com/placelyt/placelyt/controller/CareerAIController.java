@@ -1,3 +1,4 @@
+
 package com.placelyt.placelyt.controller;
 
 import com.placelyt.placelyt.ai.AIService;
@@ -12,8 +13,10 @@ import com.placelyt.placelyt.entity.UserSkill;
 import com.placelyt.placelyt.matching.CareerPathEngine;
 import com.placelyt.placelyt.repository.CareerPathRepository;
 import com.placelyt.placelyt.repository.UserSkillRepository;
+import com.placelyt.placelyt.service.AuthenticatedUserService;
 import com.placelyt.placelyt.service.CareerPathService;
 import com.placelyt.placelyt.service.SkillIntelligenceService;
+
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -32,6 +35,7 @@ public class CareerAIController {
     private final AIService aiService;
     private final SkillIntelligenceService skillIntelligenceService;
     private final CareerPathService careerPathService;
+    private final AuthenticatedUserService authenticatedUserService;
 
     public CareerAIController(
             CareerPathRepository careerPathRepository,
@@ -39,16 +43,16 @@ public class CareerAIController {
             CareerPathEngine careerPathEngine,
             AIService aiService,
             SkillIntelligenceService skillIntelligenceService,
-            CareerPathService careerPathService) {
+            CareerPathService careerPathService,
+            AuthenticatedUserService authenticatedUserService) {
 
         this.careerPathRepository = careerPathRepository;
         this.userSkillRepository = userSkillRepository;
         this.careerPathEngine = careerPathEngine;
         this.aiService = aiService;
-        this.skillIntelligenceService =
-                skillIntelligenceService;
-        this.careerPathService =
-                careerPathService;
+        this.skillIntelligenceService = skillIntelligenceService;
+        this.careerPathService = careerPathService;
+        this.authenticatedUserService = authenticatedUserService;
     }
 
     @GetMapping("/{userId}/{careerPathId}/ai")
@@ -57,9 +61,10 @@ public class CareerAIController {
             @PathVariable Long userId,
             @PathVariable Long careerPathId) {
 
+        authenticatedUserService.requireCurrentUser(userId);
+
         CareerPath careerPath =
-                careerPathRepository
-                        .findById(careerPathId)
+                careerPathRepository.findById(careerPathId)
                         .orElseThrow(() ->
                                 new IllegalArgumentException(
                                         "Career path not found"
@@ -103,9 +108,10 @@ public class CareerAIController {
             @PathVariable Long userId,
             @PathVariable Long targetCareerPathId) {
 
+        authenticatedUserService.requireCurrentUser(userId);
+
         CareerPath targetCareerPath =
-                careerPathRepository
-                        .findById(targetCareerPathId)
+                careerPathRepository.findById(targetCareerPathId)
                         .orElseThrow(() ->
                                 new IllegalArgumentException(
                                         "Career path not found"
@@ -132,9 +138,10 @@ public class CareerAIController {
             @PathVariable Long userId,
             @PathVariable Long careerPathId) {
 
+        authenticatedUserService.requireCurrentUser(userId);
+
         CareerPath careerPath =
-                careerPathRepository
-                        .findById(careerPathId)
+                careerPathRepository.findById(careerPathId)
                         .orElseThrow(() ->
                                 new IllegalArgumentException(
                                         "Career path not found"
@@ -177,6 +184,8 @@ public class CareerAIController {
             Long userId,
             Long careerPathId) {
 
+        authenticatedUserService.requireCurrentUser(userId);
+
         CareerDirectionResponse response =
                 careerPathService.getCareerDirection(
                         userId,
@@ -192,6 +201,8 @@ public class CareerAIController {
             @PathVariable Long userId,
             @PathVariable Long targetCareerPathId) {
 
+        authenticatedUserService.requireCurrentUser(userId);
+
         CareerDirectionResponse direction =
                 careerPathService.getCareerDirection(
                         userId,
@@ -204,9 +215,7 @@ public class CareerAIController {
         CareerPathResponse targetDirection =
                 direction.getTargetDirection();
 
-        if (currentDirection == null ||
-                targetDirection == null) {
-
+        if (currentDirection == null || targetDirection == null) {
             throw new IllegalArgumentException(
                     "Career direction could not be determined"
             );
@@ -225,8 +234,9 @@ public class CareerAIController {
 
     @GetMapping("/{userId}/skill-intelligence")
     public ResponseEntity<SkillIntelligenceResponse>
-    getSkillIntelligence(
-            @PathVariable Long userId) {
+    getSkillIntelligence(@PathVariable Long userId) {
+
+        authenticatedUserService.requireCurrentUser(userId);
 
         List<UserSkill> userSkills =
                 userSkillRepository.findByUserId(userId);
@@ -234,20 +244,17 @@ public class CareerAIController {
         List<String> skillNames =
                 userSkills.stream()
                         .filter(userSkill ->
-                                userSkill != null &&
-                                userSkill.getSkill() != null &&
-                                userSkill.getSkill().getName() != null &&
-                                !userSkill.getSkill().getName().isBlank()
+                                userSkill != null
+                                        && userSkill.getSkill() != null
+                                        && userSkill.getSkill().getName() != null
+                                        && !userSkill.getSkill().getName().isBlank()
                         )
-                        .map(userSkill ->
-                                userSkill.getSkill().getName()
-                        )
+                        .map(userSkill -> userSkill.getSkill().getName())
                         .distinct()
                         .toList();
 
         SkillIntelligenceResponse response =
-                skillIntelligenceService
-                        .analyzeSkills(skillNames);
+                skillIntelligenceService.analyzeSkills(skillNames);
 
         return ResponseEntity.ok(response);
     }
