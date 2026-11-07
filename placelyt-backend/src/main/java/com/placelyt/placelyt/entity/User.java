@@ -2,6 +2,7 @@
 package com.placelyt.placelyt.entity;
 
 import jakarta.persistence.*;
+import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "users")
@@ -27,7 +28,33 @@ public class User {
     @JoinColumn(name = "company_id")
     private Company company;
 
+    // Recruiter email verification
+    @Column(nullable = false)
+    private boolean emailVerified = false;
+
+    private LocalDateTime emailVerifiedAt;
+
+    // Recruiter manual approval
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private RecruiterApprovalStatus approvalStatus =
+            RecruiterApprovalStatus.PENDING;
+
+    private LocalDateTime reviewedAt;
+
+    // Store only the SHA-256 hash, never the raw token.
+    @Column(length = 64)
+    private String emailVerificationTokenHash;
+
+    private LocalDateTime emailVerificationTokenExpiresAt;
+
     public User() {
+    }
+
+    public boolean isRecruiterActive() {
+        return "RECRUITER".equals(role)
+                && emailVerified
+                && approvalStatus == RecruiterApprovalStatus.APPROVED;
     }
 
     public Long getId() {
@@ -76,5 +103,55 @@ public class User {
 
     public void setCompany(Company company) {
         this.company = company;
+    }
+
+    public boolean isEmailVerified() {
+        return emailVerified;
+    }
+
+    public void setEmailVerified(boolean emailVerified) {
+        this.emailVerified = emailVerified;
+    }
+
+    public LocalDateTime getEmailVerifiedAt() {
+        return emailVerifiedAt;
+    }
+
+    public void setEmailVerifiedAt(LocalDateTime emailVerifiedAt) {
+        this.emailVerifiedAt = emailVerifiedAt;
+    }
+
+    public RecruiterApprovalStatus getApprovalStatus() {
+        return approvalStatus;
+    }
+
+    public void setApprovalStatus(RecruiterApprovalStatus approvalStatus) {
+        this.approvalStatus = approvalStatus;
+    }
+
+    public LocalDateTime getReviewedAt() {
+        return reviewedAt;
+    }
+
+    public void setReviewedAt(LocalDateTime reviewedAt) {
+        this.reviewedAt = reviewedAt;
+    }
+
+    public String getEmailVerificationTokenHash() {
+        return emailVerificationTokenHash;
+    }
+
+    public void setEmailVerificationTokenHash(String emailVerificationTokenHash) {
+        this.emailVerificationTokenHash = emailVerificationTokenHash;
+    }
+
+    public LocalDateTime getEmailVerificationTokenExpiresAt() {
+        return emailVerificationTokenExpiresAt;
+    }
+
+    public void setEmailVerificationTokenExpiresAt(
+            LocalDateTime emailVerificationTokenExpiresAt) {
+        this.emailVerificationTokenExpiresAt =
+                emailVerificationTokenExpiresAt;
     }
 }

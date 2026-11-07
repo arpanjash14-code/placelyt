@@ -1,3 +1,4 @@
+
 package com.placelyt.placelyt.exception;
 
 import org.springframework.http.HttpStatus;
@@ -131,152 +132,175 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(DuplicateApplicationException.class)
-public ResponseEntity<Map<String, String>> handleDuplicateApplication(
-        DuplicateApplicationException exception) {
+    public ResponseEntity<Map<String, String>> handleDuplicateApplication(
+            DuplicateApplicationException exception) {
 
-    Map<String, String> error = new HashMap<>();
-    error.put("error", exception.getMessage());
+        Map<String, String> error = new HashMap<>();
+        error.put("error", exception.getMessage());
 
-    return new ResponseEntity<>(error, HttpStatus.CONFLICT);
-}
+        return new ResponseEntity<>(error, HttpStatus.CONFLICT);
+    }
 
-@ExceptionHandler(ApplicationNotFoundException.class)
-public ResponseEntity<Map<String, String>> handleApplicationNotFound(
-        ApplicationNotFoundException exception) {
+    @ExceptionHandler(ApplicationNotFoundException.class)
+    public ResponseEntity<Map<String, String>> handleApplicationNotFound(
+            ApplicationNotFoundException exception) {
 
-    Map<String, String> error = new HashMap<>();
-    error.put("error", exception.getMessage());
+        Map<String, String> error = new HashMap<>();
+        error.put("error", exception.getMessage());
 
-    return new ResponseEntity<>(error, HttpStatus.NOT_FOUND);
-}
+        return new ResponseEntity<>(error, HttpStatus.NOT_FOUND);
+    }
 
-@ExceptionHandler(JobNotOpenException.class)
-public ResponseEntity<Map<String, String>> handleJobNotOpen(
-        JobNotOpenException exception) {
+    @ExceptionHandler(JobNotOpenException.class)
+    public ResponseEntity<Map<String, String>> handleJobNotOpen(
+            JobNotOpenException exception) {
 
-    Map<String, String> error = new HashMap<>();
-    error.put("error", exception.getMessage());
+        Map<String, String> error = new HashMap<>();
+        error.put("error", exception.getMessage());
 
-    return new ResponseEntity<>(error, HttpStatus.BAD_REQUEST);
-}
+        return new ResponseEntity<>(error, HttpStatus.BAD_REQUEST);
+    }
 
-@ExceptionHandler(InvalidApplicationStatusTransitionException.class)
-public ResponseEntity<Map<String, String>> handleInvalidApplicationStatusTransition(
-        InvalidApplicationStatusTransitionException exception) {
+    @ExceptionHandler(InvalidApplicationStatusTransitionException.class)
+    public ResponseEntity<Map<String, String>>
+    handleInvalidApplicationStatusTransition(
+            InvalidApplicationStatusTransitionException exception) {
 
-    Map<String, String> error = new HashMap<>();
-    error.put("error", exception.getMessage());
+        Map<String, String> error = new HashMap<>();
+        error.put("error", exception.getMessage());
 
-    return new ResponseEntity<>(error, HttpStatus.BAD_REQUEST);
-}
+        return new ResponseEntity<>(error, HttpStatus.BAD_REQUEST);
+    }
 
-@ExceptionHandler(ApplicationOwnershipException.class)
-public ResponseEntity<Map<String, String>> handleApplicationOwnership(
-        ApplicationOwnershipException exception) {
+    @ExceptionHandler(ApplicationOwnershipException.class)
+    public ResponseEntity<Map<String, String>> handleApplicationOwnership(
+            ApplicationOwnershipException exception) {
 
-    Map<String, String> error = new HashMap<>();
-    error.put("error", exception.getMessage());
+        Map<String, String> error = new HashMap<>();
+        error.put("error", exception.getMessage());
 
-    return new ResponseEntity<>(error, HttpStatus.FORBIDDEN);
-}
+        return new ResponseEntity<>(error, HttpStatus.FORBIDDEN);
+    }
 
-@ExceptionHandler(UserNotFoundException.class)
-public ResponseEntity<Map<String, String>> handleUserNotFound(
-        UserNotFoundException exception) {
+    @ExceptionHandler(UserNotFoundException.class)
+    public ResponseEntity<Map<String, String>> handleUserNotFound(
+            UserNotFoundException exception) {
 
-    Map<String, String> error = new HashMap<>();
-    error.put("error", exception.getMessage());
+        Map<String, String> error = new HashMap<>();
+        error.put("error", exception.getMessage());
 
-    return new ResponseEntity<>(error, HttpStatus.NOT_FOUND);
-}
+        return new ResponseEntity<>(error, HttpStatus.NOT_FOUND);
+    }
 
-@ExceptionHandler(EducationNotFoundException.class)
-public ResponseEntity<Map<String, String>> handleEducationNotFound(
-        EducationNotFoundException exception) {
+    @ExceptionHandler(EducationNotFoundException.class)
+    public ResponseEntity<Map<String, String>> handleEducationNotFound(
+            EducationNotFoundException exception) {
 
-    Map<String, String> error = new HashMap<>();
-    error.put("error", exception.getMessage());
+        Map<String, String> error = new HashMap<>();
+        error.put("error", exception.getMessage());
 
-    return new ResponseEntity<>(error, HttpStatus.NOT_FOUND);
-}
+        return new ResponseEntity<>(error, HttpStatus.NOT_FOUND);
+    }
 
-@ExceptionHandler(EducationOwnershipException.class)
-public ResponseEntity<Map<String, String>> handleEducationOwnership(
-        EducationOwnershipException exception) {
+    @ExceptionHandler(EducationOwnershipException.class)
+    public ResponseEntity<Map<String, String>> handleEducationOwnership(
+            EducationOwnershipException exception) {
 
-    Map<String, String> error = new HashMap<>();
-    error.put("error", exception.getMessage());
+        Map<String, String> error = new HashMap<>();
+        error.put("error", exception.getMessage());
 
-    return new ResponseEntity<>(error, HttpStatus.FORBIDDEN);
-}
+        return new ResponseEntity<>(error, HttpStatus.FORBIDDEN);
+    }
 
-@ExceptionHandler(ExperienceNotFoundException.class)
-public ResponseEntity<Map<String, String>> handleExperienceNotFound(
-        ExperienceNotFoundException exception) {
+    @ExceptionHandler(ExperienceNotFoundException.class)
+    public ResponseEntity<Map<String, String>> handleExperienceNotFound(
+            ExperienceNotFoundException exception) {
 
-    Map<String, String> error = new HashMap<>();
-    error.put("error", exception.getMessage());
+        Map<String, String> error = new HashMap<>();
+        error.put("error", exception.getMessage());
 
-    return new ResponseEntity<>(error, HttpStatus.NOT_FOUND);
-}
+        return new ResponseEntity<>(error, HttpStatus.NOT_FOUND);
+    }
 
-@ExceptionHandler(ExperienceOwnershipException.class)
-public ResponseEntity<Map<String, String>> handleExperienceOwnership(
-        ExperienceOwnershipException exception) {
+    @ExceptionHandler(ExperienceOwnershipException.class)
+    public ResponseEntity<Map<String, String>> handleExperienceOwnership(
+            ExperienceOwnershipException exception) {
 
-    Map<String, String> error = new HashMap<>();
-    error.put("error", exception.getMessage());
+        Map<String, String> error = new HashMap<>();
+        error.put("error", exception.getMessage());
 
-    return new ResponseEntity<>(error, HttpStatus.FORBIDDEN);
-}
+        return new ResponseEntity<>(error, HttpStatus.FORBIDDEN);
+    }
 
-@ExceptionHandler(DuplicateSkillException.class)
-public ResponseEntity<Map<String, String>> handleDuplicateSkill(
-        DuplicateSkillException exception) {
+    @ExceptionHandler(DuplicateSkillException.class)
+    public ResponseEntity<Map<String, String>> handleDuplicateSkill(
+            DuplicateSkillException exception) {
 
-    Map<String, String> error = new HashMap<>();
-    error.put("error", exception.getMessage());
+        Map<String, String> error = new HashMap<>();
+        error.put("error", exception.getMessage());
 
-    return new ResponseEntity<>(error, HttpStatus.CONFLICT);
-}
+        return new ResponseEntity<>(error, HttpStatus.CONFLICT);
+    }
 
-@ExceptionHandler(DuplicateStudentProfileException.class)
-public ResponseEntity<Map<String, String>> handleDuplicateStudentProfile(
-        DuplicateStudentProfileException exception) {
+    @ExceptionHandler(DuplicateStudentProfileException.class)
+    public ResponseEntity<Map<String, String>> handleDuplicateStudentProfile(
+            DuplicateStudentProfileException exception) {
 
-    Map<String, String> error = new HashMap<>();
-    error.put("error", exception.getMessage());
+        Map<String, String> error = new HashMap<>();
+        error.put("error", exception.getMessage());
 
-    return new ResponseEntity<>(error, HttpStatus.CONFLICT);
-}
+        return new ResponseEntity<>(error, HttpStatus.CONFLICT);
+    }
 
-@ExceptionHandler(UserSkillNotFoundException.class)
-public ResponseEntity<Map<String, String>> handleUserSkillNotFound(
-        UserSkillNotFoundException exception) {
+    @ExceptionHandler(UserSkillNotFoundException.class)
+    public ResponseEntity<Map<String, String>> handleUserSkillNotFound(
+            UserSkillNotFoundException exception) {
 
-    Map<String, String> error = new HashMap<>();
-    error.put("error", exception.getMessage());
+        Map<String, String> error = new HashMap<>();
+        error.put("error", exception.getMessage());
 
-    return new ResponseEntity<>(error, HttpStatus.NOT_FOUND);
-}
+        return new ResponseEntity<>(error, HttpStatus.NOT_FOUND);
+    }
 
-@ExceptionHandler(UserSkillOwnershipException.class)
-public ResponseEntity<Map<String, String>> handleUserSkillOwnership(
-        UserSkillOwnershipException exception) {
+    @ExceptionHandler(UserSkillOwnershipException.class)
+    public ResponseEntity<Map<String, String>> handleUserSkillOwnership(
+            UserSkillOwnershipException exception) {
 
-    Map<String, String> error = new HashMap<>();
-    error.put("error", exception.getMessage());
+        Map<String, String> error = new HashMap<>();
+        error.put("error", exception.getMessage());
 
-    return new ResponseEntity<>(error, HttpStatus.FORBIDDEN);
-}
+        return new ResponseEntity<>(error, HttpStatus.FORBIDDEN);
+    }
 
-@ExceptionHandler(InvalidExperienceException.class)
-public ResponseEntity<Map<String, String>> handleInvalidExperience(
-        InvalidExperienceException exception) {
+    @ExceptionHandler(InvalidExperienceException.class)
+    public ResponseEntity<Map<String, String>> handleInvalidExperience(
+            InvalidExperienceException exception) {
 
-    Map<String, String> error = new HashMap<>();
-    error.put("error", exception.getMessage());
+        Map<String, String> error = new HashMap<>();
+        error.put("error", exception.getMessage());
 
-    return new ResponseEntity<>(error, HttpStatus.BAD_REQUEST);
-}
+        return new ResponseEntity<>(error, HttpStatus.BAD_REQUEST);
+    }
+
+    // Recruiter registration and verification exceptions
+
+    @ExceptionHandler(InvalidCompanyEmailDomainException.class)
+    public ResponseEntity<Map<String, String>> handleInvalidCompanyEmailDomain(
+            InvalidCompanyEmailDomainException exception) {
+
+        Map<String, String> error = new HashMap<>();
+        error.put("error", exception.getMessage());
+
+        return new ResponseEntity<>(error, HttpStatus.BAD_REQUEST);
+    }
+
+    @ExceptionHandler(InvalidEmailVerificationTokenException.class)
+    public ResponseEntity<Map<String, String>> handleInvalidEmailVerificationToken(
+            InvalidEmailVerificationTokenException exception) {
+
+        Map<String, String> error = new HashMap<>();
+        error.put("error", exception.getMessage());
+
+        return new ResponseEntity<>(error, HttpStatus.BAD_REQUEST);
+    }
 }

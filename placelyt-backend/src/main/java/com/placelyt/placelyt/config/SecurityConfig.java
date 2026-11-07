@@ -1,3 +1,4 @@
+
 package com.placelyt.placelyt.config;
 
 import java.util.List;
@@ -82,6 +83,18 @@ public class SecurityConfig {
                         .requestMatchers("/api/health").permitAll()
                         .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/users").permitAll()
+
+                        // Public recruiter registration and email verification.
+                        .requestMatchers(
+                                HttpMethod.POST,
+                                "/api/recruiters/register"
+                        ).permitAll()
+
+                        .requestMatchers(
+                                HttpMethod.GET,
+                                "/api/recruiters/verify-email"
+                        ).permitAll()
+
                         .anyRequest().authenticated()
                 )
 
