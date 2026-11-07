@@ -1,12 +1,16 @@
+
 package com.placelyt.placelyt.controller;
 
 import com.placelyt.placelyt.dto.JobFilterRequest;
 import com.placelyt.placelyt.dto.JobRequest;
 import com.placelyt.placelyt.dto.JobResponse;
 import com.placelyt.placelyt.service.JobService;
+
 import jakarta.validation.Valid;
+
 import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -22,6 +26,7 @@ public class JobController {
     }
 
     @PostMapping("/company/{companyId}")
+    @PreAuthorize("hasRole('RECRUITER')")
     public ResponseEntity<JobResponse> createJob(
             @PathVariable Long companyId,
             @Valid @RequestBody JobRequest request) {
@@ -82,6 +87,7 @@ public class JobController {
     }
 
     @PutMapping("/{jobId}")
+    @PreAuthorize("hasRole('RECRUITER')")
     public ResponseEntity<JobResponse> updateJob(
             @PathVariable Long jobId,
             @Valid @RequestBody JobRequest request) {
@@ -92,6 +98,7 @@ public class JobController {
     }
 
     @DeleteMapping("/{jobId}")
+    @PreAuthorize("hasRole('RECRUITER')")
     public ResponseEntity<Void> deleteJob(
             @PathVariable Long jobId) {
 
