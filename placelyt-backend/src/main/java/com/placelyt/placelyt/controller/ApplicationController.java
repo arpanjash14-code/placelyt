@@ -1,3 +1,4 @@
+
 package com.placelyt.placelyt.controller;
 
 import com.placelyt.placelyt.dto.ApplicationRequest;
@@ -21,6 +22,9 @@ public class ApplicationController {
         this.applicationService = applicationService;
     }
 
+    /**
+     * Student applies for a job.
+     */
     @PostMapping("/{userId}/job/{jobId}")
     public ResponseEntity<ApplicationResponse> createApplication(
             @PathVariable Long userId,
@@ -36,6 +40,9 @@ public class ApplicationController {
         );
     }
 
+    /**
+     * Retrieves applications belonging to a student.
+     */
     @GetMapping("/{userId}")
     public ResponseEntity<List<ApplicationResponse>> getApplications(
             @PathVariable Long userId) {
@@ -45,6 +52,23 @@ public class ApplicationController {
         );
     }
 
+    /**
+     * Retrieves all applications for the authenticated
+     * recruiter's assigned company.
+     */
+    @GetMapping("/company")
+    public ResponseEntity<List<ApplicationResponse>>
+    getApplicationsForCompany() {
+
+        return ResponseEntity.ok(
+                applicationService.getApplicationsForCompany()
+        );
+    }
+
+    /**
+     * Retrieves an individual application.
+     * Access is checked according to the authenticated actor.
+     */
     @GetMapping("/details/{applicationId}")
     public ResponseEntity<ApplicationResponse> getApplication(
             @PathVariable Long applicationId) {
@@ -54,6 +78,9 @@ public class ApplicationController {
         );
     }
 
+    /**
+     * Recruiter updates an application's status.
+     */
     @PutMapping("/{applicationId}/status")
     public ResponseEntity<ApplicationResponse> updateStatus(
             @PathVariable Long applicationId,
@@ -67,6 +94,9 @@ public class ApplicationController {
         );
     }
 
+    /**
+     * Student withdraws their own application.
+     */
     @DeleteMapping("/{applicationId}")
     public ResponseEntity<Void> withdrawApplication(
             @PathVariable Long applicationId) {

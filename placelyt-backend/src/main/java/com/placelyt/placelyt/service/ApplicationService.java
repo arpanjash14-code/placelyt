@@ -1,3 +1,4 @@
+
 package com.placelyt.placelyt.service;
 
 import com.placelyt.placelyt.dto.ApplicationRequest;
@@ -5,65 +6,83 @@ import com.placelyt.placelyt.dto.ApplicationResponse;
 import com.placelyt.placelyt.entity.Application;
 import com.placelyt.placelyt.entity.ApplicationStatus;
 import com.placelyt.placelyt.entity.Job;
-import com.placelyt.placelyt.entity.User;
 import com.placelyt.placelyt.entity.JobStatus;
+import com.placelyt.placelyt.entity.User;
 import com.placelyt.placelyt.exception.ApplicationNotFoundException;
 import com.placelyt.placelyt.exception.ApplicationOwnershipException;
 import com.placelyt.placelyt.exception.DuplicateApplicationException;
 import com.placelyt.placelyt.exception.InvalidApplicationStatusTransitionException;
 import com.placelyt.placelyt.exception.JobNotFoundException;
 import com.placelyt.placelyt.exception.JobNotOpenException;
-import com.placelyt.placelyt.exception.UserNotFoundException;
 import com.placelyt.placelyt.repository.ApplicationRepository;
 import com.placelyt.placelyt.repository.JobRepository;
 import com.placelyt.placelyt.repository.UserRepository;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import com.placelyt.placelyt.exception.UserNotFoundException;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 public class ApplicationService {
+
+    private static final String ROLE_STUDENT = "STUDENT";
+    private static final String ROLE_RECRUITER = "RECRUITER";
 
     private final ApplicationRepository applicationRepository;
     private final UserRepository userRepository;
     private final JobRepository jobRepository;
     private final EligibilityService eligibilityService;
+    private final AuthenticatedUserService authenticatedUserService;
 
     public ApplicationService(
             ApplicationRepository applicationRepository,
             UserRepository userRepository,
             JobRepository jobRepository,
-            EligibilityService eligibilityService) {
+            EligibilityService eligibilityService,
+            AuthenticatedUserService authenticatedUserService) {
 
         this.applicationRepository = applicationRepository;
         this.userRepository = userRepository;
         this.jobRepository = jobRepository;
         this.eligibilityService = eligibilityService;
+        this.authenticatedUserService = authenticatedUserService;
     }
 
+    /**
+     * Creates an application for the authenticated student.
+     *
+     * The userId parameter is retained for API compatibility,
+     * but it must match the authenticated user's ID.
+     */
     @Transactional
     public ApplicationResponse createApplication(
             Long userId,
             Long jobId,
             ApplicationRequest request) {
 
-        User user = userRepository.findById(userId)
-                .orElseThrow(() ->
-                        new RuntimeException("User not found"));
+        User authenticatedUser =
+                authenticatedUserService.getCurrentUser();
+
+        requireStudent(authenticatedUser);
+
+        if (userId == null
+                || !authenticatedUser.getId().equals(userId)) {
+
+            throw new ApplicationOwnershipException(
+                    "You can only apply using your own account"
+            );
+        }
+
+        User user = authenticatedUser;
 
         Job job = jobRepository.findById(jobId)
                 .orElseThrow(() ->
                         new JobNotFoundException("Job not found"));
 
         if (applicationRepository
-                .findByUserIdAndJobId(userId, jobId)
+                .findByUserIdAndJobId(user.getId(), jobId)
                 .isPresent()) {
 
             throw new DuplicateApplicationException(
@@ -87,7 +106,7 @@ public class ApplicationService {
         }
 
         if (!eligibilityService
-                .checkEligibility(userId, jobId)
+                .checkEligibility(user.getId(), jobId)
                 .isEligible()) {
 
             throw new JobNotOpenException(
@@ -111,56 +130,109 @@ public class ApplicationService {
         return toResponse(savedApplication);
     }
 
+    /**
+     * Retrieves applications belonging to the authenticated student.
+     */
     @Transactional(readOnly = true)
     public List<ApplicationResponse> getApplicationsByUserId(
             Long userId) {
 
-        if (!userRepository.existsById(userId)) {
-            throw new UserNotFoundException("User not found");
+        User authenticatedUser =
+                authenticatedUserService.getCurrentUser();
+
+        requireStudent(authenticatedUser);
+
+        if (userId == null
+                || !authenticatedUser.getId().equals(userId)) {
+
+            throw new ApplicationOwnershipException(
+                    "You can only view your own applications"
+            );
         }
 
         return applicationRepository.findByUserId(userId)
                 .stream()
                 .map(this::toResponse)
-                .collect(Collectors.toList());
+                .toList();
     }
 
+    /**
+     * Retrieves all applications submitted to jobs belonging
+     * to the authenticated recruiter's assigned company.
+     */
+    @Transactional(readOnly = true)
+   public List<ApplicationResponse> getApplicationsForCompany() {
+
+        User recruiter =
+                authenticatedUserService.getCurrentUser();
+
+        requireRecruiter(recruiter);
+
+        if (recruiter.getCompany() == null
+                || recruiter.getCompany().getId() == null) {
+
+            throw new ApplicationOwnershipException(
+                    "Recruiter is not assigned to a company"
+            );
+        }
+
+        return applicationRepository
+                .findByJob_Company_Id(recruiter.getCompany().getId())
+                .stream()
+                .map(this::toResponse)
+                .toList();
+    }
+
+    /**
+     * Retrieves an application for its student owner
+     * or for a recruiter belonging to the job's company.
+     */
     @Transactional(readOnly = true)
     public ApplicationResponse getApplicationById(
             Long applicationId) {
 
-        Application application =
-                applicationRepository.findById(applicationId)
-                        .orElseThrow(() ->
-                                new ApplicationNotFoundException(
-                                        "Application not found"
-                                ));
+        Application application = findApplication(applicationId);
 
-        checkApplicationOwnership(application);
+        User currentUser =
+                authenticatedUserService.getCurrentUser();
+
+        requireApplicationAccess(currentUser, application);
 
         return toResponse(application);
     }
 
+    /**
+     * Updates application status.
+     * Only recruiters assigned to the job's company
+     * can perform this operation.
+     */
     @Transactional
     public ApplicationResponse updateStatus(
             Long applicationId,
             ApplicationStatus newStatus) {
 
-        Application application =
-                applicationRepository.findById(applicationId)
-                        .orElseThrow(() ->
-                                new ApplicationNotFoundException(
-                                        "Application not found"
-                                ));
+        User recruiter =
+                authenticatedUserService.getCurrentUser();
 
-        checkApplicationOwnership(application);
+        requireRecruiter(recruiter);
+
+        Application application = findApplication(applicationId);
+
+        requireRecruiterOwnsJob(recruiter, application);
+
+        if (newStatus == null) {
+            throw new InvalidApplicationStatusTransitionException(
+                    "New application status cannot be null"
+            );
+        }
 
         ApplicationStatus currentStatus =
                 application.getStatus();
 
-        if (!isValidTransition(currentStatus, newStatus)) {
+        if (!isValidRecruiterTransition(currentStatus, newStatus)) {
+
             throw new InvalidApplicationStatusTransitionException(
-                    "Invalid application status transition: "
+                    "Invalid recruiter status transition: "
                             + currentStatus
                             + " -> "
                             + newStatus
@@ -175,11 +247,18 @@ public class ApplicationService {
         return toResponse(savedApplication);
     }
 
-    private boolean isValidTransition(
+    /**
+     * Recruiter-specific status transition rules.
+     *
+     * Recruiters cannot withdraw applications.
+     * Students cannot use this method to change statuses.
+     */
+    private boolean isValidRecruiterTransition(
             ApplicationStatus currentStatus,
             ApplicationStatus newStatus) {
 
-        if (currentStatus == newStatus) {
+        if (currentStatus == null || newStatus == null
+                || currentStatus == newStatus) {
             return false;
         }
 
@@ -187,55 +266,55 @@ public class ApplicationService {
 
             case APPLIED ->
                     newStatus == ApplicationStatus.UNDER_REVIEW
-                            || newStatus == ApplicationStatus.WITHDRAWN
                             || newStatus == ApplicationStatus.REJECTED;
 
             case UNDER_REVIEW ->
                     newStatus == ApplicationStatus.SHORTLISTED
-                            || newStatus == ApplicationStatus.WITHDRAWN
                             || newStatus == ApplicationStatus.REJECTED;
 
             case SHORTLISTED ->
                     newStatus == ApplicationStatus.INTERVIEW
-                            || newStatus == ApplicationStatus.WITHDRAWN
                             || newStatus == ApplicationStatus.REJECTED;
 
             case INTERVIEW ->
                     newStatus == ApplicationStatus.OFFERED
-                            || newStatus == ApplicationStatus.WITHDRAWN
                             || newStatus == ApplicationStatus.REJECTED;
 
             case OFFERED,
                  REJECTED,
-                 WITHDRAWN ->
-                    false;
+                 WITHDRAWN -> false;
         };
     }
 
+    /**
+     * Allows only the authenticated student who owns
+     * the application to withdraw it.
+     */
     @Transactional
     public void withdrawApplication(Long applicationId) {
 
-        Application application =
-                applicationRepository.findById(applicationId)
-                        .orElseThrow(() ->
-                                new ApplicationNotFoundException(
-                                        "Application not found"
-                                ));
+        User student =
+                authenticatedUserService.getCurrentUser();
 
-        checkApplicationOwnership(application);
+        requireStudent(student);
+
+        Application application = findApplication(applicationId);
+
+        if (!student.getId().equals(application.getUser().getId())) {
+
+            throw new ApplicationOwnershipException(
+                    "You can only withdraw your own application"
+            );
+        }
 
         ApplicationStatus currentStatus =
                 application.getStatus();
 
-        if (!isValidTransition(
-                currentStatus,
-                ApplicationStatus.WITHDRAWN)) {
+        if (!isValidStudentWithdrawal(currentStatus)) {
 
             throw new InvalidApplicationStatusTransitionException(
-                    "Invalid application status transition: "
+                    "Application cannot be withdrawn from status: "
                             + currentStatus
-                            + " -> "
-                            + ApplicationStatus.WITHDRAWN
             );
         }
 
@@ -244,38 +323,114 @@ public class ApplicationService {
         applicationRepository.save(application);
     }
 
-    private void checkApplicationOwnership(
+    /**
+     * Student withdrawal rules.
+     */
+    private boolean isValidStudentWithdrawal(
+            ApplicationStatus currentStatus) {
+
+        return currentStatus == ApplicationStatus.APPLIED
+                || currentStatus == ApplicationStatus.UNDER_REVIEW
+                || currentStatus == ApplicationStatus.SHORTLISTED
+                || currentStatus == ApplicationStatus.INTERVIEW;
+    }
+
+    /**
+     * Common application lookup.
+     */
+    private Application findApplication(Long applicationId) {
+
+        return applicationRepository.findById(applicationId)
+                .orElseThrow(() ->
+                        new ApplicationNotFoundException(
+                                "Application not found"
+                        ));
+    }
+
+    /**
+     * Enforces access based on the authenticated actor.
+     */
+    private void requireApplicationAccess(
+            User currentUser,
             Application application) {
 
-        Authentication authentication =
-                SecurityContextHolder
-                        .getContext()
-                        .getAuthentication();
+        if (hasRole(currentUser, ROLE_STUDENT)) {
 
-        if (authentication == null
-                || !authentication.isAuthenticated()) {
+            if (application.getUser() == null
+                    || !currentUser.getId().equals(
+                            application.getUser().getId())) {
 
-            throw new ApplicationOwnershipException(
-                    "User is not authenticated"
-            );
+                throw new ApplicationOwnershipException(
+                        "You do not have permission to access this application"
+                );
+            }
+
+            return;
         }
 
-        String authenticatedEmail =
-                authentication.getName();
+        if (hasRole(currentUser, ROLE_RECRUITER)) {
 
-        String applicationOwnerEmail =
-                application.getUser().getEmail();
+            requireRecruiterOwnsJob(currentUser, application);
+            return;
+        }
 
-        if (applicationOwnerEmail == null
-                || !applicationOwnerEmail.equalsIgnoreCase(
-                        authenticatedEmail)) {
+        throw new ApplicationOwnershipException(
+                "You do not have permission to access this application"
+        );
+    }
+
+    /**
+     * Ensures the recruiter is assigned to the company
+     * that owns the job associated with the application.
+     */
+    private void requireRecruiterOwnsJob(
+            User recruiter,
+            Application application) {
+
+        if (recruiter.getCompany() == null
+                || recruiter.getCompany().getId() == null
+                || application.getJob() == null
+                || application.getJob().getCompany() == null
+                || application.getJob().getCompany().getId() == null
+                || !recruiter.getCompany().getId().equals(
+                        application.getJob().getCompany().getId())) {
 
             throw new ApplicationOwnershipException(
-                    "You do not have permission to access this application"
+                    "You do not have permission to access applications for this company"
             );
         }
     }
 
+    private void requireStudent(User user) {
+
+        if (!hasRole(user, ROLE_STUDENT)) {
+
+            throw new ApplicationOwnershipException(
+                    "Only students can perform this action"
+            );
+        }
+    }
+
+    private void requireRecruiter(User user) {
+
+        if (!hasRole(user, ROLE_RECRUITER)) {
+
+            throw new ApplicationOwnershipException(
+                    "Only recruiters can perform this action"
+            );
+        }
+    }
+
+    private boolean hasRole(User user, String expectedRole) {
+
+        return user != null
+                && user.getRole() != null
+                && expectedRole.equalsIgnoreCase(user.getRole());
+    }
+
+    /**
+     * Maps an application entity to the existing response DTO.
+     */
     private ApplicationResponse toResponse(
             Application application) {
 
