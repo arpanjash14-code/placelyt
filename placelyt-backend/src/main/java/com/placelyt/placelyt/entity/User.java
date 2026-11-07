@@ -1,3 +1,4 @@
+
 package com.placelyt.placelyt.entity;
 
 import jakarta.persistence.*;
@@ -19,6 +20,12 @@ public class User {
     private String password;
 
     private String role;
+
+    // A recruiter belongs to one company.
+    // Multiple recruiters can belong to the same company.
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "company_id")
+    private Company company;
 
     public User() {
     }
@@ -61,5 +68,13 @@ public class User {
 
     public void setRole(String role) {
         this.role = role;
+    }
+
+    public Company getCompany() {
+        return company;
+    }
+
+    public void setCompany(Company company) {
+        this.company = company;
     }
 }

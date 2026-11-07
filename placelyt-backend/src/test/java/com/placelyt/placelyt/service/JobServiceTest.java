@@ -1,3 +1,4 @@
+
 package com.placelyt.placelyt.service;
 
 import com.placelyt.placelyt.dto.JobFilterRequest;
@@ -7,6 +8,7 @@ import com.placelyt.placelyt.entity.EmploymentType;
 import com.placelyt.placelyt.entity.Job;
 import com.placelyt.placelyt.entity.JobSortField;
 import com.placelyt.placelyt.entity.JobStatus;
+import com.placelyt.placelyt.entity.User;
 import com.placelyt.placelyt.entity.WorkMode;
 import com.placelyt.placelyt.exception.InvalidJobException;
 import com.placelyt.placelyt.repository.CompanyRepository;
@@ -14,18 +16,23 @@ import com.placelyt.placelyt.repository.JobEligibleBranchRepository;
 import com.placelyt.placelyt.repository.JobRepository;
 import com.placelyt.placelyt.repository.JobRequiredSkillRepository;
 import com.placelyt.placelyt.repository.SkillRepository;
+
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+
 import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.security.access.AccessDeniedException;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -33,7 +40,9 @@ import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -56,8 +65,20 @@ class JobServiceTest {
     @Mock
     private JobRequiredSkillRepository jobRequiredSkillRepository;
 
+    @Mock
+    private AuthenticatedUserService authenticatedUserService;
+
     @InjectMocks
     private JobService jobService;
+
+    @BeforeEach
+    void setUpAuthenticatedRecruiter() {
+
+        User recruiter = createRecruiterForCompany(1L);
+
+        lenient().when(authenticatedUserService.getCurrentUser())
+                .thenReturn(recruiter);
+    }
 
     // ---------------------------------------------------------
     // Validation Tests
@@ -238,20 +259,9 @@ class JobServiceTest {
                         10
                 );
 
-        assertEquals(
-                0,
-                result.getTotalElements()
-        );
-
-        assertEquals(
-                0,
-                result.getNumber()
-        );
-
-        assertEquals(
-                10,
-                result.getSize()
-        );
+        assertEquals(0, result.getTotalElements());
+        assertEquals(0, result.getNumber());
+        assertEquals(10, result.getSize());
 
         verify(jobRepository)
                 .findAll(
@@ -291,11 +301,7 @@ class JobServiceTest {
                 )
         );
 
-        jobService.filterJobs(
-                filter,
-                0,
-                10
-        );
+        jobService.filterJobs(filter, 0, 10);
 
         ArgumentCaptor<Pageable> pageableCaptor =
                 ArgumentCaptor.forClass(Pageable.class);
@@ -306,18 +312,10 @@ class JobServiceTest {
                 pageableCaptor.capture()
         );
 
-        Pageable pageable =
-                pageableCaptor.getValue();
+        Pageable pageable = pageableCaptor.getValue();
 
-        assertEquals(
-                0,
-                pageable.getPageNumber()
-        );
-
-        assertEquals(
-                10,
-                pageable.getPageSize()
-        );
+        assertEquals(0, pageable.getPageNumber());
+        assertEquals(10, pageable.getPageSize());
 
         Sort.Order order =
                 pageable.getSort()
@@ -355,11 +353,7 @@ class JobServiceTest {
                 )
         );
 
-        jobService.filterJobs(
-                filter,
-                0,
-                10
-        );
+        jobService.filterJobs(filter, 0, 10);
 
         ArgumentCaptor<Pageable> pageableCaptor =
                 ArgumentCaptor.forClass(Pageable.class);
@@ -407,11 +401,7 @@ class JobServiceTest {
                 )
         );
 
-        jobService.filterJobs(
-                filter,
-                0,
-                10
-        );
+        jobService.filterJobs(filter, 0, 10);
 
         ArgumentCaptor<Pageable> pageableCaptor =
                 ArgumentCaptor.forClass(Pageable.class);
@@ -455,11 +445,7 @@ class JobServiceTest {
                 )
         );
 
-        jobService.filterJobs(
-                filter,
-                0,
-                10
-        );
+        jobService.filterJobs(filter, 0, 10);
 
         ArgumentCaptor<Pageable> pageableCaptor =
                 ArgumentCaptor.forClass(Pageable.class);
@@ -504,26 +490,11 @@ class JobServiceTest {
         );
 
         Page<?> result =
-                jobService.filterJobs(
-                        filter,
-                        0,
-                        10
-                );
+                jobService.filterJobs(filter, 0, 10);
 
-        assertEquals(
-                0,
-                result.getNumber()
-        );
-
-        assertEquals(
-                10,
-                result.getSize()
-        );
-
-        assertEquals(
-                25,
-                result.getTotalElements()
-        );
+        assertEquals(0, result.getNumber());
+        assertEquals(10, result.getSize());
+        assertEquals(25, result.getTotalElements());
     }
 
     @Test
@@ -544,11 +515,7 @@ class JobServiceTest {
                 )
         );
 
-        jobService.filterJobs(
-                filter,
-                2,
-                5
-        );
+        jobService.filterJobs(filter, 2, 5);
 
         ArgumentCaptor<Pageable> pageableCaptor =
                 ArgumentCaptor.forClass(Pageable.class);
@@ -559,18 +526,10 @@ class JobServiceTest {
                 pageableCaptor.capture()
         );
 
-        Pageable pageable =
-                pageableCaptor.getValue();
+        Pageable pageable = pageableCaptor.getValue();
 
-        assertEquals(
-                2,
-                pageable.getPageNumber()
-        );
-
-        assertEquals(
-                5,
-                pageable.getPageSize()
-        );
+        assertEquals(2, pageable.getPageNumber());
+        assertEquals(5, pageable.getPageSize());
     }
 
     @Test
@@ -579,9 +538,7 @@ class JobServiceTest {
         JobFilterRequest filter =
                 new JobFilterRequest();
 
-        filter.setWorkMode(
-                WorkMode.REMOTE
-        );
+        filter.setWorkMode(WorkMode.REMOTE);
 
         when(jobRepository.findAll(
                 org.mockito.ArgumentMatchers
@@ -596,32 +553,18 @@ class JobServiceTest {
         );
 
         Page<?> result =
-                jobService.filterJobs(
-                        filter,
-                        1,
-                        5
+                jobService.filterJobs(filter, 1, 5);
+
+        assertEquals(1, result.getNumber());
+        assertEquals(5, result.getSize());
+        assertEquals(12, result.getTotalElements());
+
+        verify(jobRepository)
+                .findAll(
+                        org.mockito.ArgumentMatchers
+                                .<Specification<Job>>any(),
+                        any(Pageable.class)
                 );
-
-        assertEquals(
-                1,
-                result.getNumber()
-        );
-
-        assertEquals(
-                5,
-                result.getSize()
-        );
-
-        assertEquals(
-                12,
-                result.getTotalElements()
-        );
-
-        verify(jobRepository).findAll(
-                org.mockito.ArgumentMatchers
-                        .<Specification<Job>>any(),
-                any(Pageable.class)
-        );
     }
 
     @Test
@@ -650,11 +593,7 @@ class JobServiceTest {
                 )
         );
 
-        jobService.filterJobs(
-                filter,
-                2,
-                5
-        );
+        jobService.filterJobs(filter, 2, 5);
 
         ArgumentCaptor<Pageable> pageableCaptor =
                 ArgumentCaptor.forClass(Pageable.class);
@@ -665,18 +604,10 @@ class JobServiceTest {
                 pageableCaptor.capture()
         );
 
-        Pageable pageable =
-                pageableCaptor.getValue();
+        Pageable pageable = pageableCaptor.getValue();
 
-        assertEquals(
-                2,
-                pageable.getPageNumber()
-        );
-
-        assertEquals(
-                5,
-                pageable.getPageSize()
-        );
+        assertEquals(2, pageable.getPageNumber());
+        assertEquals(5, pageable.getPageSize());
 
         Sort.Order order =
                 pageable.getSort()
@@ -700,11 +631,7 @@ class JobServiceTest {
 
         assertThrows(
                 InvalidJobException.class,
-                () -> jobService.filterJobs(
-                        filter,
-                        -1,
-                        10
-                )
+                () -> jobService.filterJobs(filter, -1, 10)
         );
 
         verify(
@@ -725,11 +652,7 @@ class JobServiceTest {
 
         assertThrows(
                 InvalidJobException.class,
-                () -> jobService.filterJobs(
-                        filter,
-                        0,
-                        0
-                )
+                () -> jobService.filterJobs(filter, 0, 0)
         );
 
         verify(
@@ -750,11 +673,7 @@ class JobServiceTest {
 
         assertThrows(
                 InvalidJobException.class,
-                () -> jobService.filterJobs(
-                        filter,
-                        0,
-                        101
-                )
+                () -> jobService.filterJobs(filter, 0, 101)
         );
 
         verify(
@@ -768,8 +687,179 @@ class JobServiceTest {
     }
 
     // ---------------------------------------------------------
+    // Recruiter Company Ownership Tests
+    // ---------------------------------------------------------
+
+    @Test
+    void shouldAllowRecruiterToCreateJobForOwnCompany() {
+
+        mockCompanyLookup();
+
+        JobRequest request = new JobRequest();
+        Job savedJob = createTestJob();
+
+        when(jobRepository.save(any(Job.class)))
+                .thenReturn(savedJob);
+
+        jobService.createJob(1L, request);
+
+        verify(jobRepository).save(any(Job.class));
+    }
+
+    @Test
+    void shouldRejectRecruiterCreatingJobForAnotherCompany() {
+
+        JobRequest request = new JobRequest();
+
+        assertThrows(
+                AccessDeniedException.class,
+                () -> jobService.createJob(2L, request)
+        );
+
+        verify(companyRepository, never()).findById(any());
+        verify(jobRepository, never()).save(any(Job.class));
+    }
+
+    @Test
+    void shouldRejectStudentFromCreatingJobs() {
+
+        User student = createRecruiterForCompany(1L);
+        student.setRole("STUDENT");
+
+        when(authenticatedUserService.getCurrentUser())
+                .thenReturn(student);
+
+        assertThrows(
+                AccessDeniedException.class,
+                () -> jobService.createJob(1L, new JobRequest())
+        );
+
+        verify(companyRepository, never()).findById(any());
+        verify(jobRepository, never()).save(any(Job.class));
+    }
+
+    @Test
+    void shouldRejectRecruiterWithoutAssignedCompany() {
+
+        User recruiter = createRecruiterForCompany(1L);
+        recruiter.setCompany(null);
+
+        when(authenticatedUserService.getCurrentUser())
+                .thenReturn(recruiter);
+
+        assertThrows(
+                AccessDeniedException.class,
+                () -> jobService.createJob(1L, new JobRequest())
+        );
+
+        verify(companyRepository, never()).findById(any());
+        verify(jobRepository, never()).save(any(Job.class));
+    }
+
+    @Test
+    void shouldRejectRecruiterUpdatingAnotherCompanyJob() {
+
+        Job existingJob = createTestJob();
+
+        Company otherCompany = new Company();
+        otherCompany.setId(2L);
+        existingJob.setCompany(otherCompany);
+
+        when(jobRepository.findById(1L))
+                .thenReturn(Optional.of(existingJob));
+
+        assertThrows(
+                AccessDeniedException.class,
+                () -> jobService.updateJob(1L, new JobRequest())
+        );
+
+        verify(jobRepository, never()).save(any(Job.class));
+    }
+
+    @Test
+    void shouldRejectRecruiterDeletingAnotherCompanyJob() {
+
+        Job existingJob = createTestJob();
+
+        Company otherCompany = new Company();
+        otherCompany.setId(2L);
+        existingJob.setCompany(otherCompany);
+
+        when(jobRepository.findById(1L))
+                .thenReturn(Optional.of(existingJob));
+
+        assertThrows(
+                AccessDeniedException.class,
+                () -> jobService.deleteJob(1L)
+        );
+
+        verify(jobRepository, never()).delete(any(Job.class));
+    }
+
+    @Test
+    void shouldRejectStudentFromUpdatingJobs() {
+
+        User student = createRecruiterForCompany(1L);
+        student.setRole("STUDENT");
+
+        when(authenticatedUserService.getCurrentUser())
+                .thenReturn(student);
+
+        Job existingJob = createTestJob();
+
+        when(jobRepository.findById(1L))
+                .thenReturn(Optional.of(existingJob));
+
+        assertThrows(
+                AccessDeniedException.class,
+                () -> jobService.updateJob(1L, new JobRequest())
+        );
+
+        verify(jobRepository, never()).save(any(Job.class));
+    }
+
+    @Test
+    void shouldRejectStudentFromDeletingJobs() {
+
+        User student = createRecruiterForCompany(1L);
+        student.setRole("STUDENT");
+
+        when(authenticatedUserService.getCurrentUser())
+                .thenReturn(student);
+
+        Job existingJob = createTestJob();
+
+        when(jobRepository.findById(1L))
+                .thenReturn(Optional.of(existingJob));
+
+        assertThrows(
+                AccessDeniedException.class,
+                () -> jobService.deleteJob(1L)
+        );
+
+        verify(jobRepository, never()).delete(any(Job.class));
+    }
+
+    // ---------------------------------------------------------
     // Test Helpers
     // ---------------------------------------------------------
+
+    private User createRecruiterForCompany(Long companyId) {
+
+        Company company = new Company();
+
+        company.setId(companyId);
+        company.setName("Test Company " + companyId);
+
+        User recruiter = new User();
+
+        recruiter.setId(10L);
+        recruiter.setEmail("recruiter@example.com");
+        recruiter.setRole("RECRUITER");
+        recruiter.setCompany(company);
+
+        return recruiter;
+    }
 
     private void mockCompanyLookup() {
 

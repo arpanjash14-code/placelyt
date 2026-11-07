@@ -1,3 +1,4 @@
+
 package com.placelyt.placelyt.service;
 
 import com.placelyt.placelyt.dto.JobFilterRequest;
@@ -10,6 +11,7 @@ import com.placelyt.placelyt.entity.JobRequiredSkill;
 import com.placelyt.placelyt.entity.JobSortField;
 import com.placelyt.placelyt.entity.JobStatus;
 import com.placelyt.placelyt.entity.Skill;
+import com.placelyt.placelyt.entity.User;
 import com.placelyt.placelyt.exception.CompanyNotFoundException;
 import com.placelyt.placelyt.exception.InvalidJobException;
 import com.placelyt.placelyt.exception.JobNotFoundException;
@@ -24,6 +26,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -45,24 +48,58 @@ public class JobService {
     private final SkillRepository skillRepository;
     private final JobEligibleBranchRepository jobEligibleBranchRepository;
     private final JobRequiredSkillRepository jobRequiredSkillRepository;
+    private final AuthenticatedUserService authenticatedUserService;
 
     public JobService(
             JobRepository jobRepository,
             CompanyRepository companyRepository,
             SkillRepository skillRepository,
             JobEligibleBranchRepository jobEligibleBranchRepository,
-            JobRequiredSkillRepository jobRequiredSkillRepository) {
+            JobRequiredSkillRepository jobRequiredSkillRepository,
+            AuthenticatedUserService authenticatedUserService) {
 
         this.jobRepository = jobRepository;
         this.companyRepository = companyRepository;
         this.skillRepository = skillRepository;
         this.jobEligibleBranchRepository = jobEligibleBranchRepository;
         this.jobRequiredSkillRepository = jobRequiredSkillRepository;
+        this.authenticatedUserService = authenticatedUserService;
+    }
+
+    /**
+     * Ensures that the authenticated recruiter manages the supplied company.
+     */
+    private User requireRecruiterForCompany(Long companyId) {
+
+        User currentUser = authenticatedUserService.getCurrentUser();
+        String role = currentUser.getRole();
+
+        if (role == null
+                || !"RECRUITER".equalsIgnoreCase(role.replace("ROLE_", ""))) {
+            throw new AccessDeniedException("Only recruiters can manage jobs");
+        }
+
+        if (currentUser.getCompany() == null
+                || currentUser.getCompany().getId() == null) {
+            throw new AccessDeniedException(
+                    "Recruiter is not assigned to a company"
+            );
+        }
+
+        if (!currentUser.getCompany().getId().equals(companyId)) {
+            throw new AccessDeniedException(
+                    "You are not authorized to manage jobs for this company"
+            );
+        }
+
+        return currentUser;
     }
 
     public JobResponse createJob(
             Long companyId,
             JobRequest request) {
+
+        requireRecruiterForCompany(companyId);
 
         Company company = companyRepository.findById(companyId)
                 .orElseThrow(() ->
@@ -189,19 +226,20 @@ public class JobService {
         return toResponse(job);
     }
 
-   public List<JobResponse> getJobsByCompanyId(
-        Long companyId) {
+    public List<JobResponse> getJobsByCompanyId(
+            Long companyId) {
 
-    List<Job> jobs = jobRepository.findByCompanyId(companyId);
+        List<Job> jobs = jobRepository.findByCompanyId(companyId);
 
-    if (jobs.isEmpty() && !companyRepository.existsById(companyId)) {
-        throw new CompanyNotFoundException("Company not found");
+        if (jobs.isEmpty() && !companyRepository.existsById(companyId)) {
+            throw new CompanyNotFoundException("Company not found");
+        }
+
+        return jobs.stream()
+                .map(this::toResponse)
+                .collect(Collectors.toList());
     }
 
-    return jobs.stream()
-            .map(this::toResponse)
-            .collect(Collectors.toList());
-}
     @Transactional
     public JobResponse updateJob(
             Long jobId,
@@ -212,6 +250,8 @@ public class JobService {
         Job existingJob = jobRepository.findById(jobId)
                 .orElseThrow(() ->
                         new JobNotFoundException("Job not found"));
+
+        requireRecruiterForCompany(existingJob.getCompany().getId());
 
         existingJob.setTitle(request.getTitle());
         existingJob.setDescription(request.getDescription());
@@ -234,25 +274,15 @@ public class JobService {
 
         existingJob.setStatus(request.getStatus());
 
-        /*
-         * Remove old eligibility requirements directly
-         * from the database before inserting replacements.
-         */
         jobEligibleBranchRepository.deleteByJobId(jobId);
         jobRequiredSkillRepository.deleteByJobId(jobId);
 
         jobEligibleBranchRepository.flush();
         jobRequiredSkillRepository.flush();
 
-        /*
-         * Clear the in-memory collections as well.
-         */
         existingJob.getEligibleBranches().clear();
         existingJob.getRequiredSkills().clear();
 
-        /*
-         * Add the new eligible branches.
-         */
         if (request.getEligibleBranches() != null) {
 
             for (String branch : request.getEligibleBranches()) {
@@ -268,15 +298,9 @@ public class JobService {
             }
         }
 
-        /*
-         * Load all required skills in one database operation.
-         */
         Map<Long, Skill> skillsById =
                 loadSkillsById(request.getRequiredSkillIds());
 
-        /*
-         * Add the new required skills.
-         */
         if (request.getRequiredSkillIds() != null) {
 
             for (Long skillId : request.getRequiredSkillIds()) {
@@ -310,6 +334,8 @@ public class JobService {
         Job job = jobRepository.findById(jobId)
                 .orElseThrow(() ->
                         new JobNotFoundException("Job not found"));
+
+        requireRecruiterForCompany(job.getCompany().getId());
 
         jobRepository.delete(job);
     }
@@ -410,9 +436,6 @@ public class JobService {
 
         job.setStatus(request.getStatus());
 
-        /*
-         * Add eligible branches during job creation.
-         */
         if (request.getEligibleBranches() != null) {
 
             for (String branch : request.getEligibleBranches()) {
@@ -428,15 +451,9 @@ public class JobService {
             }
         }
 
-        /*
-         * Load all required skills in one database operation.
-         */
         Map<Long, Skill> skillsById =
                 loadSkillsById(request.getRequiredSkillIds());
 
-        /*
-         * Add required skills during job creation.
-         */
         if (request.getRequiredSkillIds() != null) {
 
             for (Long skillId : request.getRequiredSkillIds()) {
