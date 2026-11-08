@@ -9,6 +9,7 @@ import com.placelyt.placelyt.entity.Job;
 import com.placelyt.placelyt.entity.JobStatus;
 import com.placelyt.placelyt.entity.User;
 import com.placelyt.placelyt.entity.WorkMode;
+import com.placelyt.placelyt.entity.RecruiterApprovalStatus;
 import com.placelyt.placelyt.repository.CompanyRepository;
 import com.placelyt.placelyt.repository.JobEligibleBranchRepository;
 import com.placelyt.placelyt.repository.JobRepository;
@@ -70,6 +71,8 @@ class JobServiceOwnershipTest {
         recruiter.setEmail("recruiter@example.com");
         recruiter.setRole("RECRUITER");
         recruiter.setCompany(company);
+        recruiter.setEmailVerified(true);
+        recruiter.setApprovalStatus(RecruiterApprovalStatus.APPROVED);
 
         existingJob = new Job();
         existingJob.setId(1L);

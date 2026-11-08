@@ -10,6 +10,7 @@ import com.placelyt.placelyt.entity.JobSortField;
 import com.placelyt.placelyt.entity.JobStatus;
 import com.placelyt.placelyt.entity.User;
 import com.placelyt.placelyt.entity.WorkMode;
+import com.placelyt.placelyt.entity.RecruiterApprovalStatus;
 import com.placelyt.placelyt.exception.InvalidJobException;
 import com.placelyt.placelyt.repository.CompanyRepository;
 import com.placelyt.placelyt.repository.JobEligibleBranchRepository;
@@ -844,22 +845,26 @@ class JobServiceTest {
     // Test Helpers
     // ---------------------------------------------------------
 
-    private User createRecruiterForCompany(Long companyId) {
+   private User createRecruiterForCompany(Long companyId) {
 
-        Company company = new Company();
+    Company company = new Company();
 
-        company.setId(companyId);
-        company.setName("Test Company " + companyId);
+    company.setId(companyId);
+    company.setName("Test Company " + companyId);
 
-        User recruiter = new User();
+    User recruiter = new User();
 
-        recruiter.setId(10L);
-        recruiter.setEmail("recruiter@example.com");
-        recruiter.setRole("RECRUITER");
-        recruiter.setCompany(company);
+    recruiter.setId(10L);
+    recruiter.setEmail("recruiter@example.com");
+    recruiter.setRole("RECRUITER");
+    recruiter.setCompany(company);
 
-        return recruiter;
-    }
+    // Represent an active, approved recruiter in service tests.
+    recruiter.setEmailVerified(true);
+    recruiter.setApprovalStatus(RecruiterApprovalStatus.APPROVED);
+
+    return recruiter;
+}
 
     private void mockCompanyLookup() {
 

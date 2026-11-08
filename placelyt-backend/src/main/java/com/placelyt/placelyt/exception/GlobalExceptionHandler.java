@@ -303,4 +303,14 @@ public class GlobalExceptionHandler {
 
         return new ResponseEntity<>(error, HttpStatus.BAD_REQUEST);
     }
+
+        @ExceptionHandler(RecruiterApprovalException.class)
+    public ResponseEntity<Map<String, String>> handleRecruiterApproval(
+            RecruiterApprovalException exception) {
+
+        Map<String, String> error = new HashMap<>();
+        error.put("error", exception.getMessage());
+
+        return new ResponseEntity<>(error, HttpStatus.BAD_REQUEST);
+    }
 }

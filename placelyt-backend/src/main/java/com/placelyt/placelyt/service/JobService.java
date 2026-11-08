@@ -69,31 +69,37 @@ public class JobService {
     /**
      * Ensures that the authenticated recruiter manages the supplied company.
      */
-    private User requireRecruiterForCompany(Long companyId) {
+  private User requireRecruiterForCompany(Long companyId) {
 
-        User currentUser = authenticatedUserService.getCurrentUser();
-        String role = currentUser.getRole();
+    User currentUser = authenticatedUserService.getCurrentUser();
+    String role = currentUser.getRole();
 
-        if (role == null
-                || !"RECRUITER".equalsIgnoreCase(role.replace("ROLE_", ""))) {
-            throw new AccessDeniedException("Only recruiters can manage jobs");
-        }
-
-        if (currentUser.getCompany() == null
-                || currentUser.getCompany().getId() == null) {
-            throw new AccessDeniedException(
-                    "Recruiter is not assigned to a company"
-            );
-        }
-
-        if (!currentUser.getCompany().getId().equals(companyId)) {
-            throw new AccessDeniedException(
-                    "You are not authorized to manage jobs for this company"
-            );
-        }
-
-        return currentUser;
+    if (role == null
+            || !"RECRUITER".equalsIgnoreCase(role.replace("ROLE_", ""))) {
+        throw new AccessDeniedException("Only recruiters can manage jobs");
     }
+
+    if (!currentUser.isRecruiterActive()) {
+        throw new AccessDeniedException(
+                "Your recruiter account is not verified and approved"
+        );
+    }
+
+    if (currentUser.getCompany() == null
+            || currentUser.getCompany().getId() == null) {
+        throw new AccessDeniedException(
+                "Recruiter is not assigned to a company"
+        );
+    }
+
+    if (!currentUser.getCompany().getId().equals(companyId)) {
+        throw new AccessDeniedException(
+                "You are not authorized to manage jobs for this company"
+        );
+    }
+
+    return currentUser;
+}
 
     public JobResponse createJob(
             Long companyId,

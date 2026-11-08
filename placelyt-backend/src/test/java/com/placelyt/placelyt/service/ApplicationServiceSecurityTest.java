@@ -16,6 +16,8 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -61,11 +63,15 @@ class ApplicationServiceSecurityTest {
         company = createCompany(10L, "Company A");
         otherCompany = createCompany(20L, "Company B");
 
-        recruiter = createUser(3L, "RECRUITER");
-        recruiter.setCompany(company);
+       recruiter = createUser(3L, "RECRUITER");
+recruiter.setCompany(company);
+recruiter.setEmailVerified(true);
+recruiter.setApprovalStatus(RecruiterApprovalStatus.APPROVED);
 
-        otherRecruiter = createUser(4L, "RECRUITER");
-        otherRecruiter.setCompany(otherCompany);
+otherRecruiter = createUser(4L, "RECRUITER");
+otherRecruiter.setCompany(otherCompany);
+otherRecruiter.setEmailVerified(true);
+otherRecruiter.setApprovalStatus(RecruiterApprovalStatus.APPROVED);
 
         job = createJob(100L, company);
         otherJob = createJob(200L, otherCompany);

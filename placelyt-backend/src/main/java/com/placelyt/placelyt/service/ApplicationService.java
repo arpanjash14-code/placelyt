@@ -411,15 +411,20 @@ public class ApplicationService {
         }
     }
 
-    private void requireRecruiter(User user) {
+   private void requireRecruiter(User user) {
 
-        if (!hasRole(user, ROLE_RECRUITER)) {
-
-            throw new ApplicationOwnershipException(
-                    "Only recruiters can perform this action"
-            );
-        }
+    if (!hasRole(user, ROLE_RECRUITER)) {
+        throw new ApplicationOwnershipException(
+                "Only recruiters can perform this action"
+        );
     }
+
+    if (!user.isRecruiterActive()) {
+        throw new ApplicationOwnershipException(
+                "Your recruiter account is not verified and approved"
+        );
+    }
+}
 
     private boolean hasRole(User user, String expectedRole) {
 
