@@ -1,12 +1,11 @@
+
 package com.placelyt.placelyt.service;
 
-import com.placelyt.placelyt.dto.LoginRequest;
 import com.placelyt.placelyt.dto.UpdateUserRequest;
 import com.placelyt.placelyt.dto.UserRequest;
 import com.placelyt.placelyt.dto.UserResponse;
 import com.placelyt.placelyt.entity.User;
 import com.placelyt.placelyt.exception.DuplicateEmailException;
-import com.placelyt.placelyt.exception.InvalidCredentialsException;
 import com.placelyt.placelyt.exception.UserNotFoundException;
 import com.placelyt.placelyt.repository.UserRepository;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -40,6 +39,7 @@ public class UserService {
         user.setName(request.getName());
         user.setEmail(request.getEmail());
         user.setPassword(passwordEncoder.encode(request.getPassword()));
+
         // Public registration must never choose its own authority.
         user.setRole("STUDENT");
 
@@ -75,32 +75,6 @@ public class UserService {
                         user.getEmail(),
                         user.getRole()
                 ));
-    }
-
-    public UserResponse login(LoginRequest request) {
-
-        User user = userRepository.findByEmail(request.getEmail())
-                .orElseThrow(() ->
-                        new InvalidCredentialsException(
-                                "Invalid email or password"
-                        )
-                );
-
-        if (!passwordEncoder.matches(
-                request.getPassword(),
-                user.getPassword())) {
-
-            throw new InvalidCredentialsException(
-                    "Invalid email or password"
-            );
-        }
-
-        return new UserResponse(
-                user.getId(),
-                user.getName(),
-                user.getEmail(),
-                user.getRole()
-        );
     }
 
     public UserResponse getCurrentUser(String email) {

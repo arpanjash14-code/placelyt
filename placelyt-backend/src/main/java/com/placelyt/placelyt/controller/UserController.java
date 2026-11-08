@@ -1,18 +1,17 @@
+
 package com.placelyt.placelyt.controller;
 
-import com.placelyt.placelyt.dto.LoginRequest;
 import com.placelyt.placelyt.dto.UserRequest;
 import com.placelyt.placelyt.dto.UserResponse;
-
 import com.placelyt.placelyt.dto.UpdateUserRequest;
 import com.placelyt.placelyt.service.UserService;
-import org.springframework.security.core.Authentication;
 
 import jakarta.validation.Valid;
 
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
@@ -27,15 +26,12 @@ public class UserController {
     }
 
     @PostMapping
-public UserResponse createUser(@Valid @RequestBody UserRequest request) {
-    return userService.createUser(request);
-}
-    @PostMapping("/login")
-    public UserResponse login(@RequestBody LoginRequest request) { 
-    return userService.login(request);
+    public UserResponse createUser(
+            @Valid @RequestBody UserRequest request
+    ) {
+        return userService.createUser(request);
     }
 
-    
     @PreAuthorize("hasRole('ADMIN')")
     @GetMapping
     public ResponseEntity<List<UserResponse>> getAllUsers() {
@@ -43,31 +39,32 @@ public UserResponse createUser(@Valid @RequestBody UserRequest request) {
     }
 
     @GetMapping("/me")
-public ResponseEntity<UserResponse> getCurrentUser(
-        Authentication authentication) {
+    public ResponseEntity<UserResponse> getCurrentUser(
+            Authentication authentication
+    ) {
+        return ResponseEntity.ok(
+                userService.getCurrentUser(authentication.getName())
+        );
+    }
 
-    return ResponseEntity.ok(
-            userService.getCurrentUser(authentication.getName())
-    );
-}
+    @PutMapping("/me")
+    public ResponseEntity<UserResponse> updateCurrentUser(
+            Authentication authentication,
+            @Valid @RequestBody UpdateUserRequest request
+    ) {
+        return ResponseEntity.ok(
+                userService.updateCurrentUser(
+                        authentication.getName(),
+                        request
+                )
+        );
+    }
 
-@PutMapping("/me")
-public ResponseEntity<UserResponse> updateCurrentUser(
-        Authentication authentication,
-        @Valid @RequestBody UpdateUserRequest request) {
-
-    return ResponseEntity.ok(
-            userService.updateCurrentUser(
-                    authentication.getName(),
-                    request
-            )
-    );
-}
     @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/{id}")
     public ResponseEntity<UserResponse> getUserById(
-            @PathVariable Long id) {
-
+            @PathVariable Long id
+    ) {
         return userService.getUserById(id)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
