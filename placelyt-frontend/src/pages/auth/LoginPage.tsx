@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { Eye, EyeOff } from 'lucide-react'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { useAuth } from '../../context/AuthContext'
+import { useAuth } from '../../context/useAuth'
 
 interface LoginLocationState {
   from?: {
